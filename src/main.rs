@@ -1,8 +1,10 @@
 #[macro_use] extern crate nickel;
 
 use std::collections::HashMap;
-use nickel::Nickel;
+use nickel::{Nickel, MediaType};
+use nickel::status::StatusCode;
 
+// Inefficient prime testing
 fn test(x: u64) -> &'static str {
     let mut result = false;
     let upper = 1 + (x as f64).sqrt().ceil() as u64;
@@ -28,23 +30,32 @@ fn main() {
     });
 
     let router = router! {
-        get "/blah" => |_, response| {"this is boring"}
-
-        get "/user/:userId" => |req, resp| {
+        // get "/" => |_, resp| {"this is a test"}
+        get "/" => |_, mut resp| {
+            resp.set(StatusCode::Ok);
+            resp.set(MediaType::Html);
             let mut data = HashMap::new();
-            data.insert("name",req.param("userId").unwrap());
-            return resp.render("template.tpl", &data);
+            data.insert("placeholder","blah");
+            return resp.render("resources/default.tpl",&data);
         }
 
-        // get "/foo/*" => |_, response| {"you've reached a foo handler"}
+        post "/login" => |_, mut resp| {
+            resp.set(StatusCode::Ok);
+            resp.set(MediaType::Html);
+            let mut data = HashMap::new();
+            data.insert("error", "hello");
+            return resp.render("resources/login.tpl", &data);
+        }
 
-        get "/foo/:x" => |req, resp| {
+        get "/foo/:x" => |req, mut resp| {
+            resp.set(StatusCode::Ok);
+            resp.set(MediaType::Html);
             let mut data = HashMap::new();
             let x_val = req.param("x").unwrap();
 
             data.insert("x", x_val);
             data.insert("result",test(x_val.trim().parse().expect("parse error")));
-            return resp.render("template-2.tpl", &data);
+            return resp.render("resources/primes.tpl", &data);
         }
     };
     server.utilize(router);
