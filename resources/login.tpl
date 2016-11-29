@@ -14,6 +14,5 @@
             <button type="submit">Login</button><br/>
             <a href="/register">Register</a>
         </form>
-        {{error}}
     </body>
 </html>

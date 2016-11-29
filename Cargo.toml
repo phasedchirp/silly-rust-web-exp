@@ -5,3 +5,5 @@ authors = ["Sean Martin <sean.martin@nyu.edu>"]
 
 [dependencies]
 nickel = "*"
+hyper = "*"
+# mustache = "*"

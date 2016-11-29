@@ -4,6 +4,11 @@ use std::collections::HashMap;
 use nickel::{Nickel, MediaType};
 use nickel::status::StatusCode;
 
+extern crate hyper;
+use std::io::Read;
+// use hyper::Client;
+// use hyper::header::Connection;
+
 // Inefficient prime testing
 fn test(x: u64) -> &'static str {
     let mut result = false;
@@ -39,12 +44,21 @@ fn main() {
             return resp.render("resources/default.tpl",&data);
         }
 
-        post "/login" => |_, mut resp| {
+        get "/login" => |_, mut resp| {
             resp.set(StatusCode::Ok);
             resp.set(MediaType::Html);
+            return resp.send_file("resources/login.tpl");
+        }
+        // https://github.com/nickel-org/nickel.rs/issues/240
+        post "/login" =>  |req, mut resp| {
+            resp.set(StatusCode::Ok);
+            resp.set(MediaType::Html);
+            let mut form_data = String::new();
+            req.origin.read_to_string(&mut form_data);
+            println!("{:?}", form_data);
             let mut data = HashMap::new();
-            data.insert("error", "hello");
-            return resp.render("resources/login.tpl", &data);
+            data.insert("error", form_data);
+            return resp.render("resources/loggedin.tpl", &data);
         }
 
         get "/foo/:x" => |req, mut resp| {
