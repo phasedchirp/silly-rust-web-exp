@@ -10,7 +10,7 @@ use std::io::Read;
 // use hyper::header::Connection;
 
 // Inefficient prime testing
-fn test(x: u64) -> &'static str {
+fn is_prime(x: u64) -> &'static str {
     let mut result = false;
     let upper = 1 + (x as f64).sqrt().ceil() as u64;
     for i in 2..upper {
@@ -23,6 +23,16 @@ fn test(x: u64) -> &'static str {
         false => "prime",
         true => "not prime"
     }
+}
+
+#[test]
+fn composite_test() {
+    assert!(is_prime(9) == "not prime");
+}
+
+#[test]
+fn prime_test() {
+    assert!(is_prime(7) == "prime");
 }
 
 fn main() {
@@ -50,7 +60,7 @@ fn main() {
             return resp.send_file("resources/login.tpl");
         }
         // https://github.com/nickel-org/nickel.rs/issues/240
-        post "/login" =>  |req, mut resp| {
+        post "/loggedin" =>  |req, mut resp| {
             resp.set(StatusCode::Ok);
             resp.set(MediaType::Html);
             let mut form_data = String::new();
@@ -58,7 +68,7 @@ fn main() {
             println!("{:?}", form_data);
             let mut data = HashMap::new();
             data.insert("error", form_data);
-            return resp.render("resources/loggedin.tpl", &data);
+            return resp.render("resources/loggedIn.tpl", &data);
         }
 
         get "/foo/:x" => |req, mut resp| {
@@ -68,7 +78,7 @@ fn main() {
             let x_val = req.param("x").unwrap();
 
             data.insert("x", x_val);
-            data.insert("result",test(x_val.trim().parse().expect("parse error")));
+            data.insert("result",is_prime(x_val.trim().parse().expect("parse error")));
             return resp.render("resources/primes.tpl", &data);
         }
     };

@@ -4,7 +4,7 @@
     </head>
     <body>
         <h1>Login</h1>
-        <form method="post" action="login">
+        <form method="post" action="loggedin">
             <label for="email">Email</label>
             <input type="email" name="email"/>
             <br/>
