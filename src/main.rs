@@ -9,6 +9,23 @@ use std::io::Read;
 // use hyper::Client;
 // use hyper::header::Connection;
 
+fn parse_form(s: String) -> HashMap<String,String> {
+    let mut result = HashMap::new();
+    let vals =  s.trim().split('&');
+    for val in vals {
+        let vs: Vec<String> = val.split('=').map(|s| s.to_string()).collect();
+        result.insert(vs[0].clone(),vs[1].clone());
+    }
+    result
+}
+
+// fn get_default(d: &HashMap<String,T>,k: &String, d_val: T) -> T {
+//     match d.get(k) {
+//         Some(val) => val,
+//         None => d_val
+//     }
+// }
+
 // Inefficient prime testing
 fn is_prime(x: u64) -> &'static str {
     let mut result = false;
@@ -65,9 +82,12 @@ fn main() {
             resp.set(MediaType::Html);
             let mut form_data = String::new();
             req.origin.read_to_string(&mut form_data);
-            println!("{:?}", form_data);
+            let post_data = parse_form(form_data);
             let mut data = HashMap::new();
-            data.insert("error", form_data);
+            data.insert("key1","email: ");
+            data.insert("key2","password: ");
+            data.insert("val1", post_data.get("email").unwrap());
+            data.insert("val2",post_data.get("password").unwrap());
             return resp.render("resources/loggedIn.tpl", &data);
         }
 
