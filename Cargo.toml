@@ -7,4 +7,5 @@ authors = ["Sean Martin <sean.martin@nyu.edu>"]
 nickel = "*"
 hyper = "*"
 rand = "0.3"
+rustc-serialize = "0.3.18"
 # mustache = "*"

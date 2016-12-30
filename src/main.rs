@@ -1,5 +1,6 @@
 #[macro_use] extern crate nickel;
 extern crate rand;
+extern crate rustc_serialize;
 
 use std::collections::HashMap;
 use nickel::{Nickel, MediaType, FormBody};
@@ -18,17 +19,17 @@ mod make_id;
 
 use make_id::MakeID;
 
-// struct Question {
-//     text: String
-// }
-fn make_questions(qs: Vec<&str>) -> String {
-    let mut result = String::new();
-    // let temp = format!("{q}<input type=\"text\" name=\"q{i}\"><br>",
-                        // q="hello",i=1);
-    // result = result + &temp;
+#[derive(RustcEncodable)]
+struct Question {
+    number: usize,
+    text: String
+}
+
+fn make_questions(qs: Vec<&str>) -> Vec<Question> {
+    let mut result = Vec::new();
     for (i,q) in qs.iter().enumerate() {
-        result = result + &(format!("{q}<br><input type=\"text\" name=\"q{i}\"><br>",
-        q=q,i=i));
+        result.push(Question{number:i,text:q.to_string()})
+        //  = result + &(format!("{q}<br><input type=\"text\" name=\"q{i}\"></br>", q=q,i=i));
     }
     result
 }
@@ -70,25 +71,6 @@ fn main() {
             let mut data = HashMap::new();
             data.insert("questions",questions);
             return resp.render("resources/surveyCreated.tpl", &data);
-        }
-
-        get "/login" => |_, mut resp| {
-            resp.set(StatusCode::Ok);
-            resp.set(MediaType::Html);
-            return resp.send_file("resources/login.html");
-        }
-        // https://github.com/nickel-org/nickel.rs/issues/240
-        post "/loggedin" =>  |req, mut resp| {
-            resp.set(StatusCode::Ok);
-            resp.set(MediaType::Html);
-            let form_data = try_with!(resp, req.form_body());
-            println!("{:?}", form_data);
-            let mut data = HashMap::new();
-            data.insert("key1","email: ");
-            data.insert("key2","password: ");
-            data.insert("val1",form_data.get("email").unwrap());
-            data.insert("val2",form_data.get("password").unwrap());
-            return resp.render("resources/loggedIn.tpl", &data);
         }
 
     };
