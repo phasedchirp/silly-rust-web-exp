@@ -4,6 +4,5 @@
 # will have compiled files and executables
 /target/
 
-# R-related stuff:
-
-# Stan-related stuff:
+# Specific to this application: don't commit survey questions
+/surveys/*

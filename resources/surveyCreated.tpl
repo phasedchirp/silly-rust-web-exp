@@ -6,10 +6,9 @@
         <h1>You entered the following questions:</h1>
         <form method="post" action="/makeSurvey">
           {{#questions}}
-            <br><input type="text" name="q{{number}}">{{text}}</br>
+            {{text}}<br><input type="text" name="q{{number}}"></br>
           {{/questions}}
-          <button type="submit">Create Survey</button><br/>
+          <button type="submit">Looks correct?</button><br/>
         </form>
-        <p>Hopefully they're correct</p>
     </body>
 </html>

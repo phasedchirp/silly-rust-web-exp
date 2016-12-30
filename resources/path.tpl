@@ -1,7 +1,7 @@
 <html>
     <body>
         <h1>
-            Hello {{ name }}!
+            Your survey can be accessed at {{& path }}
         </h1>
     </body>
 </html>

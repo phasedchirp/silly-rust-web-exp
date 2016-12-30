@@ -8,28 +8,27 @@ use nickel::status::StatusCode;
 
 // use std::io;
 // use std::path::Path;
-// use std::fs::File;
+use std::fs::File;
 
 extern crate hyper;
-use std::io::Read;
+use std::io::{Read,Write};
 // use hyper::Client;
 // use hyper::header::Connection;
 
 mod make_id;
 
-use make_id::MakeID;
+use make_id::new_id;
 
-#[derive(RustcEncodable)]
+#[derive(RustcEncodable,Clone)]
 struct Question {
     number: usize,
     text: String
 }
 
-fn make_questions(qs: Vec<&str>) -> Vec<Question> {
+fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
     let mut result = Vec::new();
     for (i,q) in qs.iter().enumerate() {
         result.push(Question{number:i,text:q.to_string()})
-        //  = result + &(format!("{q}<br><input type=\"text\" name=\"q{i}\"></br>", q=q,i=i));
     }
     result
 }
@@ -50,7 +49,7 @@ fn main() {
             resp.set(MediaType::Html);
             let mut data = HashMap::new();
             data.insert("placeholder","blah");
-            return resp.render("resources/default.tpl",&data);
+            return resp.send_file("resources/frontPage.html");
         }
 
         get "/survey/new" => |_, mut resp| {
@@ -59,19 +58,58 @@ fn main() {
             return resp.send_file("resources/makeSurvey.html");
         }
 
-        post "/makeSurvey" => |req, mut resp| {
+        post "/survey/check" => |req, mut resp| {
             resp.set(StatusCode::Ok);
             resp.set(MediaType::Html);
             let form_data = try_with!(resp,req.form_body());
-            let qs: Vec<&str> = form_data.get("questions").unwrap()
+            let qs: Vec<&str> = (&form_data).get("questions").unwrap()
                      .split("\r\n").collect();
 
-            let questions = make_questions(qs);
+            let questions = make_questions(&qs);
 
-            let mut data = HashMap::new();
-            data.insert("questions",questions);
-            return resp.render("resources/surveyCreated.tpl", &data);
+            let survey_id = new_id(6);
+            let file_name = format!("surveys/{}",survey_id);
+            let mut fr = File::create(file_name);
+            match fr {
+                Ok(mut f) => {
+                    f.write_all(form_data.get("questions").unwrap().as_bytes());
+                    let mut data = HashMap::new();
+                    data.insert("questions",questions);
+                    return resp.render("resources/surveyCreated.tpl", &data);
+                },
+                Err(e) => {println!("{:?}",e);}
+            }
+
         }
+
+        // get "/survey/:foo" => |req, mut resp| {
+        //     // let mut survey = (&surveys).get(req.param("foo").unwrap());
+        //     match (&surveys).get(req.param("foo").unwrap()) {
+        //         Some(questions) => {
+        //             resp.set(StatusCode::Ok);
+        //             resp.set(MediaType::Html);
+        //             let mut data = HashMap::new();
+        //             data.insert("questions",questions.clone());
+        //             return resp.render("resources/survey.tpl", &data);
+        //         },
+        //         None => {
+        //             resp.set(StatusCode::NotFound);
+        //             // resp.set(MediaType::Html);
+        //             // return resp.send_file
+        //         }
+        //     }
+            // let file_name = format!("surveys/{}",req.param("foo").unwrap());
+            // let f = File::open(file_name);
+            // match f {
+            //
+            // }
+            // let mut text = String::new();
+            // f.read_to_string(&buf);
+            // match text {
+            //     "" => ,
+            //     _ =>
+            // }
+        // }
 
     };
     server.utilize(router);
