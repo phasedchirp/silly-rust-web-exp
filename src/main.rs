@@ -27,7 +27,7 @@ fn make_questions(qs: Vec<&str>) -> String {
                         // q="hello",i=1);
     // result = result + &temp;
     for (i,q) in qs.iter().enumerate() {
-        result = result + &(format!("{q}<input type=\"text\" name=\"q{i}\"><br>",
+        result = result + &(format!("{q}<br><input type=\"text\" name=\"q{i}\"><br>",
         q=q,i=i));
     }
     result

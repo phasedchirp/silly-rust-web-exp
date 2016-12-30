@@ -5,7 +5,7 @@
     <body>
         <h1>You entered the following questions:</h1>
         <form method="post" action="/makeSurvey">
-          {questions}
+          {{{questions}}}
           <button type="submit">Create Survey</button><br/>
         </form>
         <p>Hopefully they're correct</p>
