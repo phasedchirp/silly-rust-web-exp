@@ -102,12 +102,20 @@ fn main() {
         }
 
         get "/survey/:foo" => |req, mut resp| {
-            // let surveys = surveys.lock().unwrap();
-            // let survey_file = format!("surveys/{}",req.param("foo").unwrap());
             let survey_id = req.param("foo").unwrap();
             match survey_from_id(survey_id) {
-                Ok(_) => "yay!",
-                Err(_) => "boo!"
+                Ok(qs) => {
+                    resp.set(StatusCode::Ok);
+                    resp.set(MediaType::Html);
+                    let mut data = HashMap::new();
+                    data.insert("questions",qs);
+                    return resp.render("resources/takeSurvey.tpl",&data);
+                },
+                Err(e) => {
+                    resp.set(StatusCode::NotFound);
+                    println!("{:?}", e);
+                    "That survey ID doesn't seem to exist"
+                }
             }
 
         }
