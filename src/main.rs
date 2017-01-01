@@ -4,7 +4,7 @@ extern crate rustc_serialize;
 
 use std::collections::HashMap;
 
-use nickel::{Nickel, MediaType, FormBody};
+use nickel::{Nickel, HttpRouter, MediaType, FormBody};
 use nickel::status::StatusCode;
 
 
@@ -20,13 +20,20 @@ use make_id::new_id;
 #[derive(RustcEncodable,Clone)]
 struct Question {
     number: usize,
-    text: String
+    text: String,
+    options: Option<Vec<String>>
+}
+
+#[derive(RustcEncodable,Clone)]
+struct Survey {
+    path: String,
+    questions: Vec<Question>
 }
 
 fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
     let mut result = Vec::new();
     for (i,q) in qs.iter().enumerate() {
-        result.push(Question{number:i,text:q.to_string()})
+        result.push(Question{number:i,text:q.to_string(),options:None})
     }
     result
 }
@@ -46,7 +53,6 @@ fn survey_from_id(id: &str) -> Result<Vec<Question>,u32> {
 
 fn main() {
     let mut server = Nickel::new();
-    // let mut surveys = Mutex::new(HashSet::new());
 
     //middleware function logs each request to console
     // taken from https://github.com/Codenator81/nickel-demo
@@ -54,57 +60,51 @@ fn main() {
         println!("logging request: {:?}", request.origin.uri);
     });
 
-    let router = router! {
+    server.get("/survey/new", middleware! { |_, mut resp|
+        resp.set(StatusCode::Ok);
+        resp.set(MediaType::Html);
+        return resp.send_file("resources/makeSurvey.html");
+    });
 
-        get "/survey/new" => |_, mut resp| {
-            resp.set(StatusCode::Ok);
-            resp.set(MediaType::Html);
-            return resp.send_file("resources/makeSurvey.html");
+    server.post("/survey/created", middleware!{ |req, mut resp|
+        resp.set(StatusCode::Ok);
+        resp.set(MediaType::Html);
+        let form_data = try_with!(resp,req.form_body());
+        let survey_id = new_id(6);
+
+
+        let file_name = format!("surveys/{}",&survey_id);
+        let mut fr = File::create(file_name);
+        match fr {
+            Ok(mut f) => {
+                f.write_all(form_data.get("questions").unwrap().as_bytes());
+                let mut data = HashMap::new();
+                data.insert("path",format!("survey/{}",survey_id));
+                return resp.render("resources/path.tpl", &data);
+            },
+            Err(e) => {println!("{:?}",e);}
         }
+    });
 
-        post "/survey/created" => |req, mut resp| {
-            resp.set(StatusCode::Ok);
-            resp.set(MediaType::Html);
-            let form_data = try_with!(resp,req.form_body());
-            let survey_id = new_id(6);
-
-
-            let file_name = format!("surveys/{}",&survey_id);
-            let mut fr = File::create(file_name);
-            match fr {
-                Ok(mut f) => {
-                    f.write_all(form_data.get("questions").unwrap().as_bytes());
-                    let mut data = HashMap::new();
-                    data.insert("path",format!("survey/{}",survey_id));
-                    return resp.render("resources/path.tpl", &data);
-                },
-                Err(e) => {println!("{:?}",e);}
+    server.get("/survey/:foo", middleware!{ |req, mut resp|
+        let survey_id = req.param("foo").unwrap();
+        match survey_from_id(survey_id) {
+            Ok(qs) => {
+                resp.set(StatusCode::Ok);
+                resp.set(MediaType::Html);
+                let mut data = HashMap::new();
+                data.insert("questions",qs);
+                return resp.render("resources/takeSurvey.tpl",&data);
+            },
+            Err(e) => {
+                resp.set(StatusCode::NotFound);
+                println!("{:?}", e);
+                "That survey ID doesn't seem to exist"
             }
-
         }
+    });
 
 
-        get "/survey/:foo" => |req, mut resp| {
-            let survey_id = req.param("foo").unwrap();
-            match survey_from_id(survey_id) {
-                Ok(qs) => {
-                    resp.set(StatusCode::Ok);
-                    resp.set(MediaType::Html);
-                    let mut data = HashMap::new();
-                    data.insert("questions",qs);
-                    return resp.render("resources/takeSurvey.tpl",&data);
-                },
-                Err(e) => {
-                    resp.set(StatusCode::NotFound);
-                    println!("{:?}", e);
-                    "That survey ID doesn't seem to exist"
-                }
-            }
-
-        }
-
-    };
-    server.utilize(router);
 
     server.listen("127.0.0.1:6767");
 }
