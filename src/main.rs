@@ -2,7 +2,9 @@
 extern crate rand;
 extern crate rustc_serialize;
 
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
+// use std::sync::Mutex;
+
 use nickel::{Nickel, MediaType, FormBody};
 use nickel::status::StatusCode;
 
@@ -33,8 +35,22 @@ fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
     result
 }
 
+fn survey_from_id(id: &str) -> Result<Vec<Question>,u32> {
+    let survey_file = format!("surveys/{}",id);
+    match File::open(survey_file) {
+        Ok(mut f) => {
+            let mut buf = String::new();
+            f.read_to_string(&mut buf);
+            let qs: Vec<&str> = buf.split("\r\n").collect();
+            Ok(make_questions(&qs))
+        },
+        Err(e) => Err(400)
+    }
+}
+
 fn main() {
     let mut server = Nickel::new();
+    // let mut surveys = Mutex::new(HashSet::new());
 
     //middleware function logs each request to console
     // taken from https://github.com/Codenator81/nickel-demo
@@ -68,7 +84,10 @@ fn main() {
             let questions = make_questions(&qs);
 
             let survey_id = new_id(6);
-            let file_name = format!("surveys/{}",survey_id);
+            // let mut surveys = surveys.lock().unwrap();
+            // (*surveys).insert(survey_id.clone());
+
+            let file_name = format!("surveys/{}",survey_id.clone());
             let mut fr = File::create(file_name);
             match fr {
                 Ok(mut f) => {
@@ -82,22 +101,31 @@ fn main() {
 
         }
 
-        // get "/survey/:foo" => |req, mut resp| {
-        //     // let mut survey = (&surveys).get(req.param("foo").unwrap());
-        //     match (&surveys).get(req.param("foo").unwrap()) {
-        //         Some(questions) => {
-        //             resp.set(StatusCode::Ok);
-        //             resp.set(MediaType::Html);
-        //             let mut data = HashMap::new();
-        //             data.insert("questions",questions.clone());
-        //             return resp.render("resources/survey.tpl", &data);
-        //         },
-        //         None => {
-        //             resp.set(StatusCode::NotFound);
-        //             // resp.set(MediaType::Html);
-        //             // return resp.send_file
-        //         }
-        //     }
+        get "/survey/:foo" => |req, mut resp| {
+            // let surveys = surveys.lock().unwrap();
+            // let survey_file = format!("surveys/{}",req.param("foo").unwrap());
+            let survey_id = req.param("foo").unwrap();
+            match survey_from_id(survey_id) {
+                Ok(_) => "yay!",
+                Err(_) => "boo!"
+            }
+
+        }
+            // // let mut survey = (&surveys).get(req.param("foo").unwrap());
+            // match (&surveys).get(req.param("foo").unwrap()) {
+            //     Some(questions) => {
+            //         resp.set(StatusCode::Ok);
+            //         resp.set(MediaType::Html);
+            //         let mut data = HashMap::new();
+            //         data.insert("questions",questions.clone());
+            //         return resp.render("resources/survey.tpl", &data);
+            //     },
+            //     None => {
+            //         resp.set(StatusCode::NotFound);
+            //         // resp.set(MediaType::Html);
+            //         // return resp.send_file
+            //     }
+            // }
             // let file_name = format!("surveys/{}",req.param("foo").unwrap());
             // let f = File::open(file_name);
             // match f {
@@ -109,7 +137,6 @@ fn main() {
             //     "" => ,
             //     _ =>
             // }
-        // }
 
     };
     server.utilize(router);
