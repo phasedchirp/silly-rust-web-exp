@@ -5,7 +5,7 @@ authors = ["Sean Martin <sean.martin@nyu.edu>"]
 
 [dependencies]
 nickel = "*"
-hyper = "*"
+# hyper = "*"
 rand = "0.3"
 rustc-serialize = "0.3.18"
-# mustache = "*"
+mustache = "*"
