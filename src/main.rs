@@ -2,14 +2,14 @@
 extern crate rand;
 extern crate rustc_serialize;
 
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 
 use nickel::{Nickel, HttpRouter, MediaType, FormBody};
 use nickel::status::StatusCode;
 
 
 
-use std::fs::{File,remove_file};
+use std::fs::{File,remove_file,read_dir};
 use std::io::{Read,Write};
 use std::sync::{Arc,RwLock};
 
@@ -17,14 +17,14 @@ mod make_id;
 
 use make_id::new_id;
 
-#[derive(RustcEncodable,Clone)]
+#[derive(RustcEncodable,Clone,Debug)]
 struct Question {
     number: usize,
     text: String,
     options: Option<Vec<String>>
 }
 
-#[derive(RustcEncodable,Clone)]
+#[derive(RustcEncodable,Clone,Debug)]
 struct Survey {
     path: String,
     questions: Vec<Question>
@@ -54,7 +54,17 @@ fn survey_from_id(id: &str) -> Result<Vec<Question>,u32> {
 fn main() {
     let mut server = Nickel::new();
 
-    let mut shared_info = Arc::new(RwLock::new(vec![1u32,3,5]));
+    let mut surveys = HashMap::new();
+    let paths = read_dir("surveys/").unwrap();
+    for path in paths {
+        if let Ok(p) = path {
+            let id = p.file_name().into_string().unwrap();
+            surveys.insert(id.clone(),survey_from_id(&id));
+            // println!("{:?}", p.file_name());
+        }
+    }
+
+    let mut shared_info = Arc::new(RwLock::new(surveys));
 
     //middleware function logs each request to console
     // taken from https://github.com/Codenator81/nickel-demo
@@ -75,7 +85,9 @@ fn main() {
         let form_data = try_with!(resp,req.form_body());
         let survey_id = new_id(6);
 
-        println!("{:?}", shared_clone);
+        // println!("{:?}", shared_clone);
+        let mut shared_info = shared_clone.write().unwrap();
+        // (*shared_info).insert(survey_id.clone());
 
 
         let file_name = format!("surveys/{}",&survey_id);
