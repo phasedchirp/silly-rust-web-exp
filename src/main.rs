@@ -59,7 +59,7 @@ fn main() {
     for path in paths {
         if let Ok(p) = path {
             let id = p.file_name().into_string().unwrap();
-            surveys.insert(id.clone(),survey_from_id(&id));
+            surveys.insert(id.clone(),survey_from_id(&id).unwrap());
             // println!("{:?}", p.file_name());
         }
     }
@@ -86,7 +86,7 @@ fn main() {
         let survey_id = new_id(6);
 
         // println!("{:?}", shared_clone);
-        let mut shared_info = shared_clone.write().unwrap();
+        let mut surveys = shared_clone.write().unwrap();
         // (*shared_info).insert(survey_id.clone());
 
 
@@ -94,7 +94,11 @@ fn main() {
         let mut fr = File::create(file_name);
         match fr {
             Ok(mut f) => {
-                f.write_all(form_data.get("questions").unwrap().as_bytes());
+                let qs = form_data.get("questions").unwrap();
+                surveys.insert(survey_id.clone(),
+                        make_questions(&(qs.split("\r\n").collect())));
+
+                f.write_all(&qs.as_bytes());
                 let mut data = HashMap::new();
                 data.insert("path",format!("survey/{}",survey_id));
                 return resp.render("resources/path.tpl", &data);
@@ -105,21 +109,34 @@ fn main() {
 
     server.get("/survey/:foo", middleware!{ |req, mut resp|
         let survey_id = req.param("foo").unwrap();
-        println!("{:?}", shared_info);
-        match survey_from_id(survey_id) {
-            Ok(qs) => {
+        let surveys = shared_info.read().unwrap();
+        match surveys.get(survey_id) {
+            Some(qs) => {
                 resp.set(StatusCode::Ok);
                 resp.set(MediaType::Html);
                 let mut data = HashMap::new();
                 data.insert("questions",qs);
                 return resp.render("resources/takeSurvey.tpl",&data);
             },
-            Err(e) => {
+            None => {
                 resp.set(StatusCode::NotFound);
-                println!("{:?}", e);
                 "That survey ID doesn't seem to exist"
             }
         }
+        // match survey_from_id(survey_id) {
+        //     Ok(qs) => {
+        //         resp.set(StatusCode::Ok);
+        //         resp.set(MediaType::Html);
+        //         let mut data = HashMap::new();
+        //         data.insert("questions",qs);
+        //         return resp.render("resources/takeSurvey.tpl",&data);
+        //     },
+        //     Err(e) => {
+        //         resp.set(StatusCode::NotFound);
+        //         println!("{:?}", e);
+        //         "That survey ID doesn't seem to exist"
+        //     }
+        // }
     });
 
 
