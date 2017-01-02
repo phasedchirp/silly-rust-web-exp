@@ -2,20 +2,18 @@
 extern crate rand;
 extern crate rustc_serialize;
 
-use std::collections::{HashMap,HashSet};
 
 use nickel::{Nickel, HttpRouter, MediaType, FormBody};
 use nickel::status::StatusCode;
 
-
-
+use std::collections::HashMap;
 use std::fs::{File,remove_file,read_dir};
 use std::io::{Read,Write};
 use std::sync::{Arc,RwLock};
 
 mod make_id;
-
 use make_id::new_id;
+
 
 #[derive(RustcEncodable,Clone,Debug)]
 struct Question {
@@ -38,8 +36,8 @@ fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
     result
 }
 
-fn survey_from_id(id: &str) -> Result<Vec<Question>,u32> {
-    let survey_file = format!("surveys/{}",id);
+fn survey_from_file(survey_file: &str) -> Result<Vec<Question>,u32> {
+    // let survey_file = format!("surveys/{}",id);
     match File::open(survey_file) {
         Ok(mut f) => {
             let mut buf = String::new();
@@ -59,11 +57,13 @@ fn main() {
     for path in paths {
         if let Ok(p) = path {
             let id = p.file_name().into_string().unwrap();
-            surveys.insert(id.clone(),survey_from_id(&id).unwrap());
-            // println!("{:?}", p.file_name());
+            let survey_file = format!("surveys/{}",&id);
+            surveys.insert(id.clone(),survey_from_file(&survey_file).unwrap());
         }
     }
 
+    // See following example for approach to sharing data between handlers:
+    // https://github.com/nickel-org/nickel.rs/blob/master/examples/route_data.rs
     let mut shared_info = Arc::new(RwLock::new(surveys));
 
     //middleware function logs each request to console
@@ -85,9 +85,7 @@ fn main() {
         let form_data = try_with!(resp,req.form_body());
         let survey_id = new_id(6);
 
-        // println!("{:?}", shared_clone);
         let mut surveys = shared_clone.write().unwrap();
-        // (*shared_info).insert(survey_id.clone());
 
 
         let file_name = format!("surveys/{}",&survey_id);
