@@ -11,7 +11,7 @@ use nickel::status::StatusCode;
 
 use std::fs::{File,remove_file};
 use std::io::{Read,Write};
-
+use std::sync::{Arc,RwLock};
 
 mod make_id;
 
@@ -54,6 +54,8 @@ fn survey_from_id(id: &str) -> Result<Vec<Question>,u32> {
 fn main() {
     let mut server = Nickel::new();
 
+    let mut shared_info = Arc::new(RwLock::new(vec![1u32,3,5]));
+
     //middleware function logs each request to console
     // taken from https://github.com/Codenator81/nickel-demo
     server.utilize(middleware! { |request|
@@ -66,11 +68,14 @@ fn main() {
         return resp.send_file("resources/makeSurvey.html");
     });
 
+    let shared_clone = shared_info.clone();
     server.post("/survey/created", middleware!{ |req, mut resp|
         resp.set(StatusCode::Ok);
         resp.set(MediaType::Html);
         let form_data = try_with!(resp,req.form_body());
         let survey_id = new_id(6);
+
+        println!("{:?}", shared_clone);
 
 
         let file_name = format!("surveys/{}",&survey_id);
@@ -88,6 +93,7 @@ fn main() {
 
     server.get("/survey/:foo", middleware!{ |req, mut resp|
         let survey_id = req.param("foo").unwrap();
+        println!("{:?}", shared_info);
         match survey_from_id(survey_id) {
             Ok(qs) => {
                 resp.set(StatusCode::Ok);
