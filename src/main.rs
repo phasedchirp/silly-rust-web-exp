@@ -31,7 +31,12 @@ struct Survey {
 fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
     let mut result = Vec::new();
     for (i,q) in qs.iter().enumerate() {
-        result.push(Question{number:i,text:q.to_string(),options:None})
+        let mut q_opts = q.trim().split(':').collect::<Vec<&str>>();
+        let opts : Option<Vec<String>> = match q_opts.len() > 1 {
+            true => Some(q_opts[1].split(',').map(|s| s.to_string()).collect()),
+            false => None
+        };
+        result.push(Question{number:i,text:q_opts[0].to_string(),options:opts});
     }
     result
 }
@@ -42,7 +47,7 @@ fn survey_from_file(survey_file: &str) -> Result<Vec<Question>,u32> {
         Ok(mut f) => {
             let mut buf = String::new();
             f.read_to_string(&mut buf);
-            let qs: Vec<&str> = buf.split("\r\n").collect();
+            let qs: Vec<&str> = buf.trim().split("\r\n").collect();
             Ok(make_questions(&qs))
         },
         Err(e) => Err(400)
@@ -121,20 +126,6 @@ fn main() {
                 "That survey ID doesn't seem to exist"
             }
         }
-        // match survey_from_id(survey_id) {
-        //     Ok(qs) => {
-        //         resp.set(StatusCode::Ok);
-        //         resp.set(MediaType::Html);
-        //         let mut data = HashMap::new();
-        //         data.insert("questions",qs);
-        //         return resp.render("resources/takeSurvey.tpl",&data);
-        //     },
-        //     Err(e) => {
-        //         resp.set(StatusCode::NotFound);
-        //         println!("{:?}", e);
-        //         "That survey ID doesn't seem to exist"
-        //     }
-        // }
     });
 
 
