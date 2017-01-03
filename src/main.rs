@@ -54,6 +54,24 @@ fn survey_from_file(survey_file: &str) -> Result<Vec<Question>,u32> {
     }
 }
 
+fn parse_survey(s: Vec<Question>) -> String {
+    let mut result = String::new();
+    for q in s {
+        let current_q = match q.options {
+            None => format!("{t}<br><input type=\"text\" name=\"q{n}\"></br>",t = q.text, n = q.number),
+            Some(opts) => {
+                let mut temp = format!("{t}<br>",t=q.text);
+                for opt in opts {
+                    temp.push_str(&format!("<input type=\"radio\" name=\"q{n}\" value=\"{o}\">{o}<br>",n=q.number, o=opt));
+                }
+                temp
+            }
+        };
+        result.push_str(&current_q);
+    }
+    result
+}
+
 fn main() {
     let mut server = Nickel::new();
 
