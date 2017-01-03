@@ -1,5 +1,3 @@
-use std::fmt;
-
 use rand::{self, Rng};
 
 /// Table to retrieve base62 values from.

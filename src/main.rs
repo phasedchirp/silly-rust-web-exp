@@ -1,15 +1,18 @@
 #[macro_use] extern crate nickel;
 extern crate rand;
 extern crate rustc_serialize;
+extern crate rusqlite;
 
 
 use nickel::{Nickel, HttpRouter, MediaType, FormBody};
 use nickel::status::StatusCode;
 
+use rusqlite::Connection;
+
 use std::collections::HashMap;
 use std::fs::{File,remove_file,read_dir};
 use std::io::{Read,Write};
-use std::sync::{Arc,RwLock};
+use std::sync::{Arc,RwLock,Mutex};
 
 mod make_id;
 use make_id::new_id;
@@ -26,6 +29,12 @@ struct Question {
 struct Survey {
     path: String,
     questions: Vec<Question>
+}
+
+#[derive(Debug)]
+struct SResponse {
+    id: String,
+    vals: Vec<(String,String)>
 }
 
 fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
@@ -50,7 +59,7 @@ fn survey_from_file(survey_file: &str) -> Result<Vec<Question>,u32> {
             let qs: Vec<&str> = buf.trim().split("\r\n").collect();
             Ok(make_questions(&qs))
         },
-        Err(e) => Err(400)
+        Err(_) => Err(400)
     }
 }
 
@@ -72,8 +81,17 @@ fn parse_survey(s: Vec<Question>) -> String {
     result
 }
 
+// fn prep_resp_statement() -> String {
+//
+// }
+
+// fn prep_insert_statement() -> String {
+//
+// }
+
 fn main() {
     let mut server = Nickel::new();
+    let mut conn_arc = Arc::new(Mutex::new(Connection::open_in_memory().unwrap()));
 
     let mut surveys = HashMap::new();
     let paths = read_dir("surveys/").unwrap();
@@ -87,7 +105,7 @@ fn main() {
 
     // See following example for approach to sharing data between handlers:
     // https://github.com/nickel-org/nickel.rs/blob/master/examples/route_data.rs
-    let mut shared_info = Arc::new(RwLock::new(surveys));
+    let mut surveys_arc = Arc::new(RwLock::new(surveys));
 
     //middleware function logs each request to console
     // taken from https://github.com/Codenator81/nickel-demo
@@ -101,14 +119,16 @@ fn main() {
         return resp.send_file("resources/makeSurvey.html");
     });
 
-    let shared_clone = shared_info.clone();
+    let surveys_clone = surveys_arc.clone();
+    let conn_clone = conn_arc.clone();
     server.post("/survey/created", middleware!{ |req, mut resp|
         resp.set(StatusCode::Ok);
         resp.set(MediaType::Html);
         let form_data = try_with!(resp,req.form_body());
         let survey_id = new_id(6);
 
-        let mut surveys = shared_clone.write().unwrap();
+        let mut surveys = surveys_clone.write().unwrap();
+        let conn = conn_clone.lock().unwrap();
 
 
         let file_name = format!("surveys/{}",&survey_id);
@@ -119,6 +139,7 @@ fn main() {
                 surveys.insert(survey_id.clone(),
                         make_questions(&(qs.split("\r\n").collect())));
 
+                // conn.execute(&insert_survey(surveys.get(&survey_id).unwrap())).unwrap();
                 f.write_all(&qs.as_bytes());
                 let mut data = HashMap::new();
                 data.insert("path",format!("survey/{}",survey_id));
@@ -130,7 +151,8 @@ fn main() {
 
     server.get("/survey/:foo", middleware!{ |req, mut resp|
         let survey_id = req.param("foo").unwrap();
-        let surveys = shared_info.read().unwrap();
+        let surveys = surveys_arc.read().unwrap();
+        let conn = conn_arc.lock().unwrap();
         match surveys.get(survey_id) {
             Some(qs) => {
                 resp.set(StatusCode::Ok);
