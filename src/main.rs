@@ -91,6 +91,11 @@ fn parse_survey(s: Vec<Question>) -> String {
 
 fn main() {
     let mut server = Nickel::new();
+
+    // currently creating one large db for everything
+    // could also create db for each survey instead
+    // relevant docs:
+    // http://jgallagher.github.io/rusqlite/rusqlite/struct.Connection.html
     let mut conn_arc = Arc::new(Mutex::new(Connection::open_in_memory().unwrap()));
 
     let mut surveys = HashMap::new();
@@ -113,13 +118,15 @@ fn main() {
         println!("logging request: {:?}", request.origin.uri);
     });
 
+    // route for survey creation page:
     server.get("/survey/new", middleware! { |_, mut resp|
         resp.set(StatusCode::Ok);
         resp.set(MediaType::Html);
         return resp.send_file("resources/makeSurvey.html");
     });
 
-    let surveys_clone = surveys_arc.clone();
+    // route (plus setup) for adding user-created surveys:
+    let surveys_clone_make = surveys_arc.clone();
     let conn_clone = conn_arc.clone();
     server.post("/survey/created", middleware!{ |req, mut resp|
         resp.set(StatusCode::Ok);
@@ -127,7 +134,7 @@ fn main() {
         let form_data = try_with!(resp,req.form_body());
         let survey_id = new_id(6);
 
-        let mut surveys = surveys_clone.write().unwrap();
+        let mut surveys = surveys_clone_make.write().unwrap();
         let conn = conn_clone.lock().unwrap();
 
 
@@ -149,10 +156,12 @@ fn main() {
         }
     });
 
+    // route for taking a survey
+    let surveys_clone_take = surveys_arc.clone();
     server.get("/survey/:foo", middleware!{ |req, mut resp|
         let survey_id = req.param("foo").unwrap();
-        let surveys = surveys_arc.read().unwrap();
-        let conn = conn_arc.lock().unwrap();
+        let surveys = surveys_clone_take.read().unwrap();
+        // let conn = conn_arc.lock().unwrap();
         match surveys.get(survey_id) {
             Some(qs) => {
                 resp.set(StatusCode::Ok);
@@ -166,6 +175,14 @@ fn main() {
                 "That survey ID doesn't seem to exist"
             }
         }
+    });
+
+    // route for submitting completed survey
+    server.post("survey/:foo/submit", middleware!{ |req, mut resp|
+        let survey_id = req.param("foo").unwrap().to_owned();
+        let form_data = try_with!(resp,req.form_body());
+        let surveys = surveys_arc.read().unwrap();
+
     });
 
 
