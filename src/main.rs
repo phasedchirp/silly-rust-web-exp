@@ -2,6 +2,7 @@
 extern crate rand;
 extern crate rustc_serialize;
 extern crate rusqlite;
+// extern crate chrono;
 
 
 use nickel::{Nickel, HttpRouter, MediaType, FormBody};
@@ -81,18 +82,25 @@ fn parse_survey(s: Vec<Question>) -> String {
     result
 }
 
-// fn prep_resp_statement(r: &SResponse) -> String {
-//     let mut stmnt = "INSERT INTO responses (".to_string
-//
-//
-// }
+fn prep_resp_statement(resp: &SResponse, id: &str, t: &str) -> String {
+    let mut stmnt = "INSERT INTO responses (id,".to_string();
+    let mut vals = format!("VALUES ({}",id);
+    for r in &resp.vals {
+        stmnt.push_str(&format!("q{},", r.0));
+        vals.push_str(&format!("{},",r.1));
+    }
+    stmnt.push_str("time)");
+    stmnt.push_str(&format!("{})",t));
+    stmnt.push_str(&vals);
+    stmnt
+}
 
 fn prep_insert_statement(s: &Survey) -> String {
-    let mut stmnt = "CREATE TABLE responses (id INTEGER PRIMARY KEY,".to_string();
+    let mut stmnt = "CREATE TABLE responses (id string PRIMARY KEY,".to_string();
     for q in 0..(s.questions.len()) {
         stmnt.push_str(&format!("q{} TEXT,\n",q));
     }
-    stmnt.push_str("time\n)");
+    stmnt.push_str("time string\n)");
     stmnt
 }
 
@@ -168,7 +176,7 @@ fn main() {
     server.get("/survey/:foo", middleware!{ |req, mut resp|
         let survey_id = req.param("foo").unwrap();
         let surveys = surveys_clone_take.read().unwrap();
-        // let conn = conn_arc.lock().unwrap();
+
         match surveys.get(survey_id) {
             Some(qs) => {
                 resp.set(StatusCode::Ok);
@@ -186,9 +194,11 @@ fn main() {
 
     // route for submitting completed survey
     server.post("survey/:foo/submit", middleware!{ |req, mut resp|
+        let conn = conn_arc.lock().unwrap();
         let survey_id = req.param("foo").unwrap().to_owned();
         let form_data = try_with!(resp,req.form_body());
         let surveys = surveys_arc.read().unwrap();
+        let user_id = new_id(10);
 
     });
 
