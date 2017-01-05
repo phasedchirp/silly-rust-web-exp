@@ -81,13 +81,20 @@ fn parse_survey(s: Vec<Question>) -> String {
     result
 }
 
-// fn prep_resp_statement() -> String {
+// fn prep_resp_statement(r: &SResponse) -> String {
+//     let mut stmnt = "INSERT INTO responses (".to_string
+//
 //
 // }
 
-// fn prep_insert_statement() -> String {
-//
-// }
+fn prep_insert_statement(s: &Survey) -> String {
+    let mut stmnt = "CREATE TABLE responses (id INTEGER PRIMARY KEY,".to_string();
+    for q in 0..(s.questions.len()) {
+        stmnt.push_str(&format!("q{} TEXT,\n",q));
+    }
+    stmnt.push_str("time\n)");
+    stmnt
+}
 
 fn main() {
     let mut server = Nickel::new();
