@@ -64,12 +64,12 @@ fn survey_from_file(survey_file: &str) -> Result<Vec<Question>,u32> {
     }
 }
 
-fn parse_survey(s: Vec<Question>) -> String {
+fn parse_survey(s: &Vec<Question>) -> String {
     let mut result = String::new();
     for q in s {
         let current_q = match q.options {
             None => format!("{t}<br><input type=\"text\" name=\"q{n}\"></br>",t = q.text, n = q.number),
-            Some(opts) => {
+            Some(ref opts) => {
                 let mut temp = format!("{t}<br>",t=q.text);
                 for opt in opts {
                     temp.push_str(&format!("<input type=\"radio\" name=\"q{n}\" value=\"{o}\">{o}<br>",n=q.number, o=opt));
@@ -176,13 +176,16 @@ fn main() {
     server.get("/survey/:foo", middleware!{ |req, mut resp|
         let survey_id = req.param("foo").unwrap();
         let surveys = surveys_clone_take.read().unwrap();
+        let mut qs_parsed = String::new();
+        let mut data = HashMap::new();
 
         match surveys.get(survey_id) {
             Some(qs) => {
                 resp.set(StatusCode::Ok);
                 resp.set(MediaType::Html);
-                let mut data = HashMap::new();
-                data.insert("questions",qs);
+                data.insert("id",survey_id);
+                qs_parsed = parse_survey(&qs);
+                data.insert("questions",&qs_parsed);
                 return resp.render("resources/takeSurvey.tpl",&data);
             },
             None => {
@@ -199,6 +202,7 @@ fn main() {
         let form_data = try_with!(resp,req.form_body());
         let surveys = surveys_arc.read().unwrap();
         let user_id = new_id(10);
+        println!("{:?}", form_data);
 
     });
 
