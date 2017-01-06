@@ -6,9 +6,6 @@
         <h1>Please complete the following questions:</h1>
         <form method="post" action="/survey/{{id}}/submit">
           {{& questions}}
-          <!-- {{#questions}}
-            {{text}}<br><input type="text" name="q{{number}}"></br>
-          {{/questions}} -->
           <button type="submit">Submit</button><br>
         </form>
     </body>

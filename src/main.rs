@@ -42,6 +42,7 @@ fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
     let mut result = Vec::new();
     for (i,q) in qs.iter().enumerate() {
         let mut q_opts = q.trim().split(':').collect::<Vec<&str>>();
+        println!("{:?}", q_opts);
         let opts : Option<Vec<String>> = match q_opts.len() > 1 {
             true => Some(q_opts[1].split(',').map(|s| s.to_string()).collect()),
             false => None
@@ -174,18 +175,18 @@ fn main() {
     // route for taking a survey
     let surveys_clone_take = surveys_arc.clone();
     server.get("/survey/:foo", middleware!{ |req, mut resp|
-        let survey_id = req.param("foo").unwrap();
+        let survey_id = req.param("foo").unwrap().to_string();
         let surveys = surveys_clone_take.read().unwrap();
         let mut qs_parsed = String::new();
         let mut data = HashMap::new();
 
-        match surveys.get(survey_id) {
+        match surveys.get(&survey_id) {
             Some(qs) => {
                 resp.set(StatusCode::Ok);
                 resp.set(MediaType::Html);
                 data.insert("id",survey_id);
                 qs_parsed = parse_survey(&qs);
-                data.insert("questions",&qs_parsed);
+                data.insert("questions",qs_parsed);
                 return resp.render("resources/takeSurvey.tpl",&data);
             },
             None => {
