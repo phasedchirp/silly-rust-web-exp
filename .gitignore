@@ -6,3 +6,4 @@
 
 # Specific to this application: don't commit survey questions
 /surveys/*
+surveys.sqlite

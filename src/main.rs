@@ -36,7 +36,7 @@ fn survey_from_file(survey_file: &str) -> Result<Vec<Question>,u32> {
 
 fn main() {
     let mut server = Nickel::new();
-    let mut conn_arc = Arc::new(Mutex::new(Connection::open_in_memory().unwrap()));
+    let mut conn_arc = Arc::new(Mutex::new(Connection::open("surveys.sqlite").unwrap()));
 
     let mut surveys = HashMap::new();
     let paths = read_dir("surveys/").unwrap();
@@ -44,7 +44,9 @@ fn main() {
         if let Ok(p) = path {
             let id = p.file_name().into_string().unwrap();
             let survey_file = format!("surveys/{}",&id);
-            surveys.insert(id.clone(),survey_from_file(&survey_file).unwrap());
+            let s = Survey{id: id.clone(),
+                            questions: survey_from_file(&survey_file).unwrap()};
+            surveys.insert(id.clone(),s);
         }
     }
 
@@ -80,10 +82,11 @@ fn main() {
         match fr {
             Ok(mut f) => {
                 let qs = form_data.get("questions").unwrap();
-                surveys.insert(survey_id.clone(),
-                        make_questions(&(qs.split("\r\n").collect())));
+                let s = Survey{id:survey_id.clone(),
+                               questions: make_questions(&(qs.split("\r\n").collect()))};
+                surveys.insert(survey_id.clone(),s.clone());
 
-                // conn.execute(&insert_survey(surveys.get(&survey_id).unwrap())).unwrap();
+                conn.execute(&prep_insert_statement(&s),&[]).unwrap();
                 f.write_all(&qs.as_bytes());
                 let mut data = HashMap::new();
                 data.insert("path",format!("survey/{}",survey_id));
@@ -106,7 +109,7 @@ fn main() {
                 resp.set(StatusCode::Ok);
                 resp.set(MediaType::Html);
                 data.insert("id",survey_id);
-                qs_parsed = parse_survey(&qs);
+                qs_parsed = parse_survey(&qs.questions);
                 data.insert("questions",qs_parsed);
                 return resp.render("resources/takeSurvey.tpl",&data);
             },

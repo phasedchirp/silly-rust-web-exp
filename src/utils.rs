@@ -10,8 +10,8 @@ pub struct Question {
 
 #[derive(RustcEncodable,Clone,Debug)]
 pub struct Survey {
-    path: String,
-    questions: Vec<Question>
+    pub id: String,
+    pub questions: Vec<Question>
 }
 
 #[derive(Debug)]
@@ -24,7 +24,6 @@ pub fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
     let mut result = Vec::new();
     for (i,q) in qs.iter().enumerate() {
         let mut q_opts = q.trim().split(':').collect::<Vec<&str>>();
-        println!("{:?}", q_opts);
         let opts : Option<Vec<String>> = match q_opts.len() > 1 {
             true => Some(q_opts[1].split(',').map(|s| s.to_string()).collect()),
             false => None
@@ -67,7 +66,7 @@ pub fn prep_resp_statement(resp: &SResponse, id: &str, t: &str) -> String {
 }
 
 pub fn prep_insert_statement(s: &Survey) -> String {
-    let mut stmnt = "CREATE TABLE responses (id string PRIMARY KEY,".to_string();
+    let mut stmnt = format!("CREATE TABLE \"{}\" (id string PRIMARY KEY,",s.id);
     for q in 0..(s.questions.len()) {
         stmnt.push_str(&format!("q{} TEXT,\n",q));
     }
