@@ -121,13 +121,16 @@ fn main() {
     });
 
     // route for submitting completed survey
-    server.post("survey/:foo/submit", middleware!{ |req, mut resp|
+    server.post("/survey/:foo/submit", middleware!{ |req, mut resp|
+        resp.set(StatusCode::Ok);
+        resp.set(MediaType::Html);
         let conn = conn_arc.lock().unwrap();
         let survey_id = req.param("foo").unwrap().to_owned();
         let form_data = try_with!(resp,req.form_body());
         let surveys = surveys_arc.read().unwrap();
         let user_id = new_id(10);
         println!("{:?}", form_data);
+        "Thanks for taking that survey!"
 
     });
 
