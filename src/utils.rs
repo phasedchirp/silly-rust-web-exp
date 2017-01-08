@@ -15,11 +15,11 @@ pub struct Survey {
     pub questions: Vec<Question>
 }
 
-#[derive(Debug)]
-pub struct SResponse {
-    id: String,
-    vals: Vec<(String,String)>
-}
+// #[derive(Debug)]
+// pub struct SResponse {
+//     id: String,
+//     vals: Vec<(String,String)>
+// }
 
 pub fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
     let mut result = Vec::new();
@@ -77,7 +77,7 @@ pub fn prep_resp_statement(resp: &Vec<(usize,String,String)>, s_id: &str, id: &s
     stmnt.push_str("time)");
     vals.push_str(&format!("\"{}\")",t));
     stmnt.push_str(&vals);
-    println!("{}",stmnt);
+    // println!("{}",stmnt);
     stmnt
 }
 

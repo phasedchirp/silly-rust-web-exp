@@ -2,13 +2,15 @@
 extern crate rand;
 extern crate rustc_serialize;
 extern crate rusqlite;
-// extern crate chrono;
+extern crate chrono;
 
 
 use nickel::{Nickel, HttpRouter, MediaType, FormBody};
 use nickel::status::StatusCode;
 
 use rusqlite::Connection;
+
+use chrono::{UTC,DateTime};
 
 use std::collections::HashMap;
 use std::fs::{File,remove_file,read_dir};
@@ -18,13 +20,15 @@ use std::sync::{Arc,RwLock,Mutex};
 mod utils;
 use utils::*;
 
+// #[cfg(test)]
+// mod tests;
 
 
 fn survey_from_file(survey_file: &str) -> Result<Vec<Question>,u32> {
     match File::open(survey_file) {
         Ok(mut f) => {
             let mut buf = String::new();
-            f.read_to_string(&mut buf);
+            f.read_to_string(&mut buf).unwrap();
             let qs: Vec<&str> = buf.trim().split("\r\n").collect();
             Ok(make_questions(&qs))
         },
@@ -78,7 +82,7 @@ fn main() {
 
 
         let file_name = format!("surveys/{}",&survey_id);
-        let mut fr = File::create(file_name);
+        let fr = File::create(file_name);
         match fr {
             Ok(mut f) => {
                 let qs = form_data.get("questions").unwrap();
@@ -87,7 +91,7 @@ fn main() {
                 surveys.insert(survey_id.clone(),s.clone());
 
                 conn.execute(&prep_insert_statement(&s),&[]).unwrap();
-                f.write_all(&qs.as_bytes());
+                f.write_all(&qs.as_bytes()).unwrap();
                 let mut data = HashMap::new();
                 data.insert("path",format!("survey/{}",survey_id));
                 return resp.render("resources/path.tpl", &data);
@@ -101,7 +105,7 @@ fn main() {
     server.get("/survey/:foo", middleware!{ |req, mut resp|
         let survey_id = req.param("foo").unwrap().to_string();
         let surveys = surveys_clone_take.read().unwrap();
-        let mut qs_parsed = String::new();
+
         let mut data = HashMap::new();
 
         match surveys.get(&survey_id) {
@@ -109,7 +113,7 @@ fn main() {
                 resp.set(StatusCode::Ok);
                 resp.set(MediaType::Html);
                 data.insert("id",survey_id);
-                qs_parsed = parse_survey(&qs.questions);
+                let qs_parsed = parse_survey(&qs.questions);
                 data.insert("questions",qs_parsed);
                 return resp.render("resources/takeSurvey.tpl",&data);
             },
@@ -132,16 +136,18 @@ fn main() {
 
         let user_response = parse_response(&form_data,surveys.get(&survey_id).unwrap());
         let user_id = new_id(10);
-        let stmnt = prep_resp_statement(&user_response,&survey_id,&user_id,"now");
+
+        let timestamp : DateTime<UTC> = UTC::now();
+        let stmnt = prep_resp_statement(&user_response,&survey_id,&user_id,&timestamp.to_string());
 
         conn.execute(&stmnt,&[]).unwrap();
 
-        println!("{:?}", form_data);
+        // println!("{:?}", form_data);
         "Thanks for taking that survey!"
 
     });
 
 
 
-    server.listen("127.0.0.1:6767");
+    server.listen("127.0.0.1:6767").unwrap();
 }
