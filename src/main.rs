@@ -90,7 +90,7 @@ fn main() {
                                questions: make_questions(&(qs.split("\r\n").collect()))};
                 surveys.insert(survey_id.clone(),s.clone());
 
-                conn.execute(&prep_insert_statement(&s),&[]).unwrap();
+                conn.execute(&s.to_stmnt(),&[]).unwrap();
                 f.write_all(&qs.as_bytes()).unwrap();
                 let mut data = HashMap::new();
                 data.insert("path",format!("survey/{}",survey_id));
@@ -125,29 +125,30 @@ fn main() {
     });
 
     // route for submitting completed survey
+    let conn_submit = conn_arc.clone();
     server.post("/survey/:foo/submit", middleware!{ |req, mut resp|
         resp.set(StatusCode::Ok);
         resp.set(MediaType::Html);
-        let conn = conn_arc.lock().unwrap();
+        let conn = conn_submit.lock().unwrap();
         let surveys = surveys_arc.read().unwrap();
 
         let survey_id = req.param("foo").unwrap().to_owned();
         let form_data = try_with!(resp,req.form_body());
 
         let user_response = SResponse::new(&form_data,surveys.get(&survey_id).unwrap(),&survey_id);
-        // parse_response(&form_data,surveys.get(&survey_id).unwrap());
-        let user_id = new_id(10);
 
         let timestamp : DateTime<UTC> = UTC::now();
-        let stmnt = user_response.to_stmnt(&timestamp.to_string());
-        // let stmnt = prep_resp_statement(&user_response,&survey_id,&user_id,&timestamp.to_string());
 
-        conn.execute(&stmnt,&[]).unwrap();
+        conn.execute(&user_response.to_stmnt(&timestamp.to_string()),&[]).unwrap();
 
-        // println!("{:?}", form_data);
         "Thanks for taking that survey!"
-
     });
+
+    // server.get("/survey/:foo/:bar/:baz",middleware!{ |req, mut resp|
+    //     let resp_format = req.param("baz").unwrap();
+    //     resp.set(StatusCode::Ok);
+    //     resp.set(MediaType::)
+    // });
 
 
 
