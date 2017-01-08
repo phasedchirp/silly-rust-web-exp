@@ -1,7 +1,7 @@
 [package]
-name = "silly-rust-web-exp"
+name = "simpoll"
 version = "0.1.0"
-authors = ["Sean Martin <sean.martin@nyu.edu>"]
+authors = ["Sean Martin <phasedchirp2.718@gmail.com>"]
 
 [dependencies]
 nickel = "*"
