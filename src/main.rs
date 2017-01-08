@@ -36,7 +36,7 @@ fn survey_from_file(survey_file: &str) -> Result<Vec<Question>,u32> {
 
 fn main() {
     let mut server = Nickel::new();
-    let mut conn_arc = Arc::new(Mutex::new(Connection::open("surveys.sqlite").unwrap()));
+    let conn_arc = Arc::new(Mutex::new(Connection::open("surveys.sqlite").unwrap()));
 
     let mut surveys = HashMap::new();
     let paths = read_dir("surveys/").unwrap();
@@ -50,7 +50,7 @@ fn main() {
         }
     }
 
-    let mut surveys_arc = Arc::new(RwLock::new(surveys));
+    let surveys_arc = Arc::new(RwLock::new(surveys));
 
     // log requests to stdout:
     server.utilize(middleware! { |request|
@@ -125,10 +125,17 @@ fn main() {
         resp.set(StatusCode::Ok);
         resp.set(MediaType::Html);
         let conn = conn_arc.lock().unwrap();
+        let surveys = surveys_arc.read().unwrap();
+
         let survey_id = req.param("foo").unwrap().to_owned();
         let form_data = try_with!(resp,req.form_body());
-        let surveys = surveys_arc.read().unwrap();
+
+        let user_response = parse_response(&form_data,surveys.get(&survey_id).unwrap());
         let user_id = new_id(10);
+        let stmnt = prep_resp_statement(&user_response,&survey_id,&user_id,"now");
+
+        conn.execute(&stmnt,&[]).unwrap();
+
         println!("{:?}", form_data);
         "Thanks for taking that survey!"
 
