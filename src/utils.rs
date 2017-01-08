@@ -2,11 +2,52 @@ use rand::{self, Rng};
 use nickel::Params;
 
 
+// #[derive(Debug)]
+// pub struct SResponse {
+//     id: String,
+//     vals: Vec<(String,String)>
+// }
+
 #[derive(RustcEncodable,Clone,Debug)]
 pub struct Question {
     number: usize,
     text: String,
     options: Option<Vec<String>>
+}
+
+impl Question {
+    pub fn to_html_string(&self) -> String {
+        match self.options {
+            None => format!("{t}<br><input type=\"text\" name=\"q{n}\"></br>",t = self.text, n = self.number),
+            Some(ref opts) => {
+                let mut result = format!("{t}<br>",t=self.text);
+                for opt in opts {
+                    result.push_str(&format!("<input type=\"radio\" name=\"q{n}\" value=\"{o}\">{o}<br>",n=self.number, o=opt));
+                }
+                result
+            }
+        }
+    }
+
+    pub fn new(i: usize, t: &str) -> Question {
+        let q_opts: Vec<&str> = t.trim().split(':').collect();
+        Question {
+            number: i,
+            text: q_opts[0].to_string(),
+            options: match q_opts.len() > 1 {
+                true => Some(q_opts[1].split(',').map(|s| s.to_string()).collect()),
+                false => None
+            }
+        }
+    }
+}
+
+pub fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
+    let mut result = Vec::new();
+    for (i,q) in qs.iter().enumerate() {
+        result.push(Question::new(i,q));
+    }
+    result
 }
 
 #[derive(RustcEncodable,Clone,Debug)]
@@ -15,47 +56,20 @@ pub struct Survey {
     pub questions: Vec<Question>
 }
 
-// #[derive(Debug)]
-// pub struct SResponse {
-//     id: String,
-//     vals: Vec<(String,String)>
-// }
-
-pub fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
-    let mut result = Vec::new();
-    for (i,q) in qs.iter().enumerate() {
-        let q_opts = q.trim().split(':').collect::<Vec<&str>>();
-        let opts : Option<Vec<String>> = match q_opts.len() > 1 {
-            true => Some(q_opts[1].split(',').map(|s| s.to_string()).collect()),
-            false => None
-        };
-        result.push(Question{number:i,text:q_opts[0].to_string(),options:opts});
-    }
-    result
-}
-
-pub fn parse_survey(s: &Vec<Question>) -> String {
-    let mut result = String::new();
-    for q in s {
-        let current_q = match q.options {
-            None => format!("{t}<br><input type=\"text\" name=\"q{n}\"></br>",t = q.text, n = q.number),
-            Some(ref opts) => {
-                let mut temp = format!("{t}<br>",t=q.text);
-                for opt in opts {
-                    temp.push_str(&format!("<input type=\"radio\" name=\"q{n}\" value=\"{o}\">{o}<br>",n=q.number, o=opt));
-                }
-                temp
+impl Survey {
+    pub fn to_form(&self) -> String {
+        let mut result = String::new();
+        for q in &self.questions {
+                let current_q = q.to_html_string();
+                result.push_str(&current_q);
             }
-        };
-        result.push_str(&current_q);
+        result
     }
-    result
 }
 
 pub fn parse_response(p: &Params, s: &Survey) -> Vec<(usize,String,String)> {
     let mut result = Vec::new();
     for i in s.questions.iter() {
-        // let num = i.number.clone();
         let text = i.text.clone();
         let par = format!("q{}",&i.number);
         match p.get(&par){

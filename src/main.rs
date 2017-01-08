@@ -113,7 +113,7 @@ fn main() {
                 resp.set(StatusCode::Ok);
                 resp.set(MediaType::Html);
                 data.insert("id",survey_id);
-                let qs_parsed = parse_survey(&qs.questions);
+                let qs_parsed = qs.to_form();
                 data.insert("questions",qs_parsed);
                 return resp.render("resources/takeSurvey.tpl",&data);
             },
