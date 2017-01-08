@@ -49,6 +49,7 @@ fn main() {
             let id = p.file_name().into_string().unwrap();
             let survey_file = format!("surveys/{}",&id);
             let s = Survey{id: id.clone(),
+                           key: "blah".to_string(),
                             questions: survey_from_file(&survey_file).unwrap()};
             surveys.insert(id.clone(),s);
         }
@@ -75,25 +76,25 @@ fn main() {
         resp.set(StatusCode::Ok);
         resp.set(MediaType::Html);
         let form_data = try_with!(resp,req.form_body());
-        let survey_id = new_id(6);
+
+        let qs = form_data.get("questions").unwrap();
+        let (id,k,s) = Survey::new(&(qs.split("\r\n").collect()));
 
         let mut surveys = surveys_clone_make.write().unwrap();
         let conn = conn_clone.lock().unwrap();
 
 
-        let file_name = format!("surveys/{}",&survey_id);
+        let file_name = format!("surveys/{}",&id);
         let fr = File::create(file_name);
         match fr {
             Ok(mut f) => {
-                let qs = form_data.get("questions").unwrap();
-                let s = Survey{id:survey_id.clone(),
-                               questions: make_questions(&(qs.split("\r\n").collect()))};
-                surveys.insert(survey_id.clone(),s.clone());
+                surveys.insert(id.clone(),s.clone());
 
                 conn.execute(&s.to_stmnt(),&[]).unwrap();
                 f.write_all(&qs.as_bytes()).unwrap();
                 let mut data = HashMap::new();
-                data.insert("path",format!("survey/{}",survey_id));
+                data.insert("path",format!("survey/{}",id));
+                data.insert("key",format!("survey/{}/{}/<format>",id,k));
                 return resp.render("resources/path.tpl", &data);
             },
             Err(e) => {println!("{:?}",e);}
@@ -126,16 +127,19 @@ fn main() {
 
     // route for submitting completed survey
     let conn_submit = conn_arc.clone();
+    let surveys_clone_submit = surveys_arc.clone();
     server.post("/survey/:foo/submit", middleware!{ |req, mut resp|
         resp.set(StatusCode::Ok);
         resp.set(MediaType::Html);
         let conn = conn_submit.lock().unwrap();
-        let surveys = surveys_arc.read().unwrap();
+        let surveys = surveys_clone_submit.read().unwrap();
 
         let survey_id = req.param("foo").unwrap().to_owned();
         let form_data = try_with!(resp,req.form_body());
 
-        let user_response = SResponse::new(&form_data,surveys.get(&survey_id).unwrap(),&survey_id);
+        let user_response = SResponse::new(&form_data,
+                            surveys.get(&survey_id).unwrap(),
+                            &survey_id);
 
         let timestamp : DateTime<UTC> = UTC::now();
 

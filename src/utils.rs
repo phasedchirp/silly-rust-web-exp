@@ -48,12 +48,22 @@ pub fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
 #[derive(RustcEncodable,Clone,Debug)]
 pub struct Survey {
     pub id: String,
-    // pub key: String,
+    pub key: String,
     pub questions: Vec<Question>
 }
 
 impl Survey {
-    // pub fn new() -> Survey {
+    pub fn new(qs: &Vec<&str>) -> (String,String,Survey) {
+        let id = new_id(10);
+        let key = new_id(10);
+        (id.clone(),key.clone(),Survey{id: id,key:key,questions:make_questions(qs)})
+    }
+    //
+    // pub fn to_file(&self) -> {
+    //
+    // }
+
+    // pub fn from_file(&str) -> (String,String,Survey) {
     //
     // }
 
@@ -77,14 +87,14 @@ impl Survey {
 }
 
 
-pub fn prep_insert_statement(s: &Survey) -> String {
-    let mut stmnt = format!("CREATE TABLE \"{}\" (id string PRIMARY KEY,",s.id);
-    for q in 0..(s.questions.len()) {
-        stmnt.push_str(&format!("q{} TEXT,\n",q));
-    }
-    stmnt.push_str("time string\n)");
-    stmnt
-}
+// pub fn prep_insert_statement(s: &Survey) -> String {
+//     let mut stmnt = format!("CREATE TABLE \"{}\" (id string PRIMARY KEY,",s.id);
+//     for q in 0..(s.questions.len()) {
+//         stmnt.push_str(&format!("q{} TEXT,\n",q));
+//     }
+//     stmnt.push_str("time string\n)");
+//     stmnt
+// }
 
 
 #[derive(Debug)]
