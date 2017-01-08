@@ -134,11 +134,13 @@ fn main() {
         let survey_id = req.param("foo").unwrap().to_owned();
         let form_data = try_with!(resp,req.form_body());
 
-        let user_response = parse_response(&form_data,surveys.get(&survey_id).unwrap());
+        let user_response = SResponse::new(&form_data,surveys.get(&survey_id).unwrap(),&survey_id);
+        // parse_response(&form_data,surveys.get(&survey_id).unwrap());
         let user_id = new_id(10);
 
         let timestamp : DateTime<UTC> = UTC::now();
-        let stmnt = prep_resp_statement(&user_response,&survey_id,&user_id,&timestamp.to_string());
+        let stmnt = user_response.to_stmnt(&timestamp.to_string());
+        // let stmnt = prep_resp_statement(&user_response,&survey_id,&user_id,&timestamp.to_string());
 
         conn.execute(&stmnt,&[]).unwrap();
 

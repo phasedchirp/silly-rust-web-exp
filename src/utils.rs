@@ -2,11 +2,6 @@ use rand::{self, Rng};
 use nickel::Params;
 
 
-// #[derive(Debug)]
-// pub struct SResponse {
-//     id: String,
-//     vals: Vec<(String,String)>
-// }
 
 #[derive(RustcEncodable,Clone,Debug)]
 pub struct Question {
@@ -65,6 +60,44 @@ impl Survey {
             }
         result
     }
+}
+
+
+#[derive(Debug)]
+pub struct SResponse {
+    id: String,
+    s_id: String,
+    vals: Vec<(usize,String,String)>
+}
+
+impl SResponse {
+    pub fn new(p: &Params, s: &Survey, id: &str) -> SResponse {
+        let mut result = Vec::new();
+        for i in s.questions.iter() {
+            let text = i.text.clone();
+            let par = format!("q{}",&i.number);
+            match p.get(&par){
+                Some(val) => result.push((i.number,text,val.to_string())),
+                None      => result.push((i.number,text,"no response".to_string()))
+            };
+        }
+        SResponse {id: new_id(10), s_id: id.to_string(), vals: result}
+    }
+
+    pub fn to_stmnt(&self,t: &str) -> String {
+        let mut stmnt = format!("INSERT INTO \"{}\" (id, ",self.s_id);
+        let mut vals = format!(" VALUES (\"{}\" ,",self.id);
+        for r in self.vals.iter() {
+            stmnt.push_str(&format!("q{}, ", r.0));
+            vals.push_str(&format!("\"{}\", ",r.2));
+        }
+        stmnt.push_str("time)");
+        vals.push_str(&format!("\"{}\")",t));
+        stmnt.push_str(&vals);
+        println!("{}",stmnt);
+        stmnt
+    }
+
 }
 
 pub fn parse_response(p: &Params, s: &Survey) -> Vec<(usize,String,String)> {
