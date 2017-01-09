@@ -1,5 +1,7 @@
 use rand::{self, Rng};
 use nickel::Params;
+use std::fs::File;
+use std::io::{Read,Write};
 
 
 
@@ -11,7 +13,7 @@ pub struct Question {
 }
 
 impl Question {
-    pub fn to_html_string(&self) -> String {
+    fn to_html_string(&self) -> String {
         match self.options {
             None => format!("{t}<br><input type=\"text\" name=\"q{n}\"></br>",t = self.text, n = self.number),
             Some(ref opts) => {
@@ -20,6 +22,15 @@ impl Question {
                     result.push_str(&format!("<input type=\"radio\" name=\"q{n}\" value=\"{o}\">{o}<br>",n=self.number, o=opt));
                 }
                 result
+            }
+        }
+    }
+
+    fn as_string(&self) -> String {
+        match self.options {
+            None => format!("{}",self.text),
+            Some(ref opts) => {
+                format!("{}:{}",self.text,opts.join(","))
             }
         }
     }
@@ -53,19 +64,36 @@ pub struct Survey {
 }
 
 impl Survey {
-    pub fn new(qs: &Vec<&str>) -> (String,String,Survey) {
+    pub fn new(qs: &Vec<&str>) -> Survey {
         let id = new_id(10);
         let key = new_id(10);
-        (id.clone(),key.clone(),Survey{id: id,key:key,questions:make_questions(qs)})
+        Survey{id: id,key:key,questions:make_questions(qs)}
     }
-    //
-    // pub fn to_file(&self) -> {
-    //
-    // }
 
-    // pub fn from_file(&str) -> (String,String,Survey) {
-    //
-    // }
+    pub fn to_file(&self,path: &str) {
+        let fr = File::create(path);
+        match fr {
+            Ok(mut f) => {
+                let qs: String = self.questions.iter()
+                        .map(|q| q.as_string()).collect::<Vec<String>>().join("\n");
+                f.write_all(&qs.as_bytes()).unwrap();
+            },
+            Err(e) => {println!("{:?}",e);}
+        }
+    }
+
+    pub fn from_file(survey_file: &str) -> Result<Survey,u32> {
+        match File::open(survey_file) {
+            Ok(mut f) => {
+                let id_key: Vec<&str> = survey_file.split('-').collect();
+                let mut buf = String::new();
+                f.read_to_string(&mut buf).unwrap();
+                let qs = make_questions(&buf.trim().split("\r\n").collect());
+                Ok(Survey {id: id_key[0].to_string(), key: id_key[1].to_string(), questions: qs})
+            },
+            Err(_) => Err(400)
+        }
+    }
 
     pub fn to_form(&self) -> String {
         let mut result = String::new();

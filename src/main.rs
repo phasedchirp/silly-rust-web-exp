@@ -48,10 +48,8 @@ fn main() {
         if let Ok(p) = path {
             let id = p.file_name().into_string().unwrap();
             let survey_file = format!("surveys/{}",&id);
-            let s = Survey{id: id.clone(),
-                           key: "blah".to_string(),
-                            questions: survey_from_file(&survey_file).unwrap()};
-            surveys.insert(id.clone(),s);
+            let s = Survey::from_file(&survey_file).unwrap();
+            surveys.insert(s.id.clone(),s);
         }
     }
 
@@ -78,27 +76,19 @@ fn main() {
         let form_data = try_with!(resp,req.form_body());
 
         let qs = form_data.get("questions").unwrap();
-        let (id,k,s) = Survey::new(&(qs.split("\r\n").collect()));
+        let s = Survey::new(&(qs.split("\r\n").collect()));
 
         let mut surveys = surveys_clone_make.write().unwrap();
         let conn = conn_clone.lock().unwrap();
 
 
-        let file_name = format!("surveys/{}",&id);
-        let fr = File::create(file_name);
-        match fr {
-            Ok(mut f) => {
-                surveys.insert(id.clone(),s.clone());
-
-                conn.execute(&s.to_stmnt(),&[]).unwrap();
-                f.write_all(&qs.as_bytes()).unwrap();
-                let mut data = HashMap::new();
-                data.insert("path",format!("survey/{}",id));
-                data.insert("key",format!("survey/{}/{}/<format>",id,k));
-                return resp.render("resources/path.tpl", &data);
-            },
-            Err(e) => {println!("{:?}",e);}
-        }
+        s.to_file(&format!("surveys/{}-{}",&s.id,&s.key));
+        surveys.insert(s.id.clone(),s.clone());
+        conn.execute(&s.to_stmnt(),&[]).unwrap();
+        let mut data = HashMap::new();
+        data.insert("path",format!("survey/{}",s.id));
+        data.insert("key",format!("survey/{}/{}/<format>",s.id,s.key));
+        return resp.render("resources/path.tpl", &data);
     });
 
     // route for taking a survey
