@@ -139,11 +139,36 @@ fn main() {
         "Thanks for taking that survey!"
     });
 
-    // server.get("/survey/:foo/:bar/:baz",middleware!{ |req, mut resp|
-    //     let resp_format = req.param("baz").unwrap();
-    //     resp.set(StatusCode::Ok);
-    //     resp.set(MediaType::)
-    // });
+    let surveys_clone_get = surveys_arc.clone();
+    let conn_get = conn_arc.clone();
+    server.get("/survey/:foo/:bar/:baz",middleware!{ |req, mut resp|
+        let id = req.param("foo").unwrap();
+        let key = req.param("bar").unwrap();
+        let resp_format = req.param("baz").unwrap();
+
+        let surveys = surveys_clone_get.read().unwrap();
+        let conn = conn_get.lock().unwrap();
+
+        match surveys.get(id) {
+            Some(s) => {
+                if s.key == key {
+                    let mut stmnt = conn.prepare(&s.get_results()).unwrap();
+                    let mut rows = stmnt.query(&[]).unwrap();
+                    while let Some(result) = rows.next() {
+                        let uid: String = result.unwrap().get(0);
+                        println!("{:?}", uid);
+                    }
+                } else {
+                    ()// return resp.send_file("resources/notPermitted.html");
+                }
+            },
+            None => ()//return resp.send_file("resources/notPermitted.html");
+        }
+
+        // resp.set(StatusCode::Ok);
+        // resp.set(MediaType::)
+    });
+
     let surveys_clone_delete = surveys_arc.clone();
     let conn_delete = conn_arc.clone();
     server.get("/survey/:foo/:bar/delete", middleware! { |req, mut resp|
@@ -154,6 +179,7 @@ fn main() {
         let result = match surveys.get(id) {
             Some(s) => {
                 if s.key == key {
+                    resp.set(StatusCode::Ok);
                     conn.execute(&s.to_drop(),&[]).unwrap();
                     remove_file(&format!("surveys/{}-{}",s.id,s.key));
                     "Survey deleted"

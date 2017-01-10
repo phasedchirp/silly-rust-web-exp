@@ -116,6 +116,10 @@ impl Survey {
     pub fn to_drop(&self) -> String {
         format!("DROP TABLE \"{}\"",self.id)
     }
+
+    pub fn get_results(&self) -> String {
+        format!("SELECT * FROM \"{}\"",self.id)
+    }
 }
 
 
