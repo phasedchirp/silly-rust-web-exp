@@ -86,9 +86,11 @@ fn main() {
         surveys.insert(s.id.clone(),s.clone());
         conn.execute(&s.to_stmnt(),&[]).unwrap();
         let mut data = HashMap::new();
+        data.insert("id",s.id.clone());
+        data.insert("key",s.key.clone());
         data.insert("path",format!("survey/{}",s.id));
-        data.insert("key",format!("survey/{}/{}/<format>",s.id,s.key));
-        data.insert("key",format!("survey/{}/{}/delete",s.id,s.key));
+        data.insert("results",format!("survey/{}/{}/<format>",s.id,s.key));
+        data.insert("delete",format!("survey/{}/{}/delete",s.id,s.key));
         return resp.render("resources/path.tpl", &data);
     });
 
@@ -163,8 +165,11 @@ fn main() {
                     }).unwrap();
                     let temp_file = format!("temp/{}",s.id);
                     let mut f = File::create(&temp_file).unwrap();
+                    let qs = s.questions.iter()
+                              .fold("\"id".to_string(),|a,q| a + "\",\"" + &q.text);
+                    f.write_all(format!("{}\",timestamp\n",qs).as_bytes());
                     for result in rows {
-                        let line = format!("{}",result.unwrap().join(","));
+                        let line = format!("{}\n",result.unwrap().join(","));
                         f.write_all(line.as_bytes());
                         // println!("{:?}", result);
                     }
@@ -194,10 +199,14 @@ fn main() {
                     remove_file(&format!("surveys/{}-{}",s.id,s.key));
                     "Survey deleted"
                 } else {
+                    resp.set(StatusCode::Forbidden);
                     "Not allowed"
                 }
             },
-            None => "Not allowed"
+            None => {
+                resp.set(StatusCode::Forbidden);
+                "Not allowed"
+            }
         };
         if result == "Survey deleted" {
             surveys.remove(id);

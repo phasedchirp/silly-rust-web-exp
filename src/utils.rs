@@ -2,14 +2,15 @@ use rand::{self, Rng};
 use nickel::Params;
 use std::fs::File;
 use std::io::{Read,Write};
+// use rusqlite::Connection;
 
 
 
 #[derive(RustcEncodable,Clone,Debug)]
 pub struct Question {
-    number: usize,
-    text: String,
-    options: Option<Vec<String>>
+    pub number: usize,
+    pub text: String,
+    pub options: Option<Vec<String>>
 }
 
 impl Question {
@@ -120,6 +121,10 @@ impl Survey {
     pub fn get_results(&self) -> String {
         format!("SELECT * FROM \"{}\"",self.id)
     }
+
+    // pub fn to_csv(&self, c: &Connection) -> Result<String,_> {
+    //
+    // }
 }
 
 
