@@ -123,16 +123,6 @@ impl Survey {
 }
 
 
-// pub fn prep_insert_statement(s: &Survey) -> String {
-//     let mut stmnt = format!("CREATE TABLE \"{}\" (id string PRIMARY KEY,",s.id);
-//     for q in 0..(s.questions.len()) {
-//         stmnt.push_str(&format!("q{} TEXT,\n",q));
-//     }
-//     stmnt.push_str("time string\n)");
-//     stmnt
-// }
-
-
 #[derive(Debug)]
 pub struct SResponse {
     id: String,

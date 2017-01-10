@@ -156,18 +156,18 @@ fn main() {
                     let mut stmnt = conn.prepare(&s.get_results()).unwrap();
                     let mut rows = stmnt.query_map(&[],|r| {
                         let mut row: Vec<String> = Vec::new();
-                        for i in 0..(q_len+1) {
+                        for i in 0..(q_len+2) {
                             row.push(r.get(i as i32));
                         }
                         row
                     }).unwrap();
+                    let temp_file = format!("temp/{}",s.id);
+                    let mut f = File::create(&temp_file).unwrap();
                     for result in rows {
-                        println!("{:?}", result);
+                        let line = format!("{}",result.unwrap().join(","));
+                        f.write_all(line.as_bytes());
+                        // println!("{:?}", result);
                     }
-                    // while let Some(result) = rows.next() {
-                    //     let uid: String = result.unwrap().get(0);
-                    //     println!("{:?}", uid);
-                    // }
                 } else {
                     ()// return resp.send_file("resources/notPermitted.html");
                 }
