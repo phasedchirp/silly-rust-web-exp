@@ -112,6 +112,10 @@ impl Survey {
         stmnt.push_str("time string\n)");
         stmnt
     }
+
+    pub fn to_drop(&self) -> String {
+        format!("DROP TABLE \"{}\"",self.id)
+    }
 }
 
 

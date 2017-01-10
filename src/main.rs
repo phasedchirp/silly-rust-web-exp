@@ -88,6 +88,7 @@ fn main() {
         let mut data = HashMap::new();
         data.insert("path",format!("survey/{}",s.id));
         data.insert("key",format!("survey/{}/{}/<format>",s.id,s.key));
+        data.insert("key",format!("survey/{}/{}/delete",s.id,s.key));
         return resp.render("resources/path.tpl", &data);
     });
 
@@ -143,6 +144,30 @@ fn main() {
     //     resp.set(StatusCode::Ok);
     //     resp.set(MediaType::)
     // });
+    let surveys_clone_delete = surveys_arc.clone();
+    let conn_delete = conn_arc.clone();
+    server.get("/survey/:foo/:bar/delete", middleware! { |req, mut resp|
+        let id = req.param("foo").unwrap();
+        let key = req.param("bar").unwrap();
+        let mut surveys = surveys_clone_delete.write().unwrap();
+        let conn = conn_delete.lock().unwrap();
+        let result = match surveys.get(id) {
+            Some(s) => {
+                if s.key == key {
+                    conn.execute(&s.to_drop(),&[]).unwrap();
+                    remove_file(&format!("surveys/{}-{}",s.id,s.key));
+                    "Survey deleted"
+                } else {
+                    "Not allowed"
+                }
+            },
+            None => "Not allowed"
+        };
+        if result == "Survey deleted" {
+            surveys.remove(id);
+        }
+        result
+    });
 
 
 
