@@ -152,12 +152,22 @@ fn main() {
         match surveys.get(id) {
             Some(s) => {
                 if s.key == key {
+                    let q_len = s.questions.len();
                     let mut stmnt = conn.prepare(&s.get_results()).unwrap();
-                    let mut rows = stmnt.query(&[]).unwrap();
-                    while let Some(result) = rows.next() {
-                        let uid: String = result.unwrap().get(0);
-                        println!("{:?}", uid);
+                    let mut rows = stmnt.query_map(&[],|r| {
+                        let mut row: Vec<String> = Vec::new();
+                        for i in 0..(q_len+1) {
+                            row.push(r.get(i as i32));
+                        }
+                        row
+                    }).unwrap();
+                    for result in rows {
+                        println!("{:?}", result);
                     }
+                    // while let Some(result) = rows.next() {
+                    //     let uid: String = result.unwrap().get(0);
+                    //     println!("{:?}", uid);
+                    // }
                 } else {
                     ()// return resp.send_file("resources/notPermitted.html");
                 }
