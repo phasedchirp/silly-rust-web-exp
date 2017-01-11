@@ -83,13 +83,14 @@ impl Survey {
         }
     }
 
-    pub fn from_file(survey_file: &str) -> Result<Survey,u32> {
-        match File::open(survey_file) {
+    pub fn from_file(survey_dir: &str, id: &str) -> Result<Survey,u32> {
+        match File::open(&format!("{}/{}",survey_dir,id)) {
             Ok(mut f) => {
-                let id_key: Vec<&str> = survey_file.split('-').collect();
+                let id_key: Vec<&str> = id.split('-').collect();
                 let mut buf = String::new();
                 f.read_to_string(&mut buf).unwrap();
                 let qs = make_questions(&buf.trim().split("\r\n").collect());
+                println!("{:?}", id_key);
                 Ok(Survey {id: id_key[0].to_string(), key: id_key[1].to_string(), questions: qs})
             },
             Err(_) => Err(400)
