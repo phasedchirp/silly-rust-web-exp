@@ -12,8 +12,6 @@ use rusqlite::Connection;
 
 use chrono::{UTC,DateTime};
 
-// use tempfile::tempfile;
-
 use std::collections::HashMap;
 use std::fs::{File,remove_file,read_dir};
 use std::io::{Read,Write};
@@ -32,6 +30,8 @@ fn main() {
     let conn_arc = Arc::new(Mutex::new(Connection::open("surveys.sqlite").unwrap()));
 
     let mut surveys = HashMap::new();
+
+    // reload surveys from file on re-start:
     let paths = read_dir("surveys/").unwrap();
     for path in paths {
         if let Ok(p) = path {
@@ -68,7 +68,6 @@ fn main() {
 
         let mut surveys = surveys_clone_make.write().unwrap();
         let conn = conn_clone.lock().unwrap();
-
 
         s.to_file(&format!("surveys/{}-{}",&s.id,&s.key));
         surveys.insert(s.id.clone(),s.clone());
@@ -118,23 +117,27 @@ fn main() {
         let survey_id = req.param("foo").unwrap().to_owned();
         let form_data = try_with!(resp,req.form_body());
 
-        let user_response = SResponse::new(&form_data,
-                            surveys.get(&survey_id).unwrap(),
-                            &survey_id);
+        let user_response = SResponse::new(&form_data,                            surveys.get(&survey_id).unwrap(), &survey_id);
 
-        let timestamp : DateTime<UTC> = UTC::now();
-
-        conn.execute(&user_response.to_stmnt(&timestamp.to_string()),&[]).unwrap();
+        conn.execute(&user_response.to_stmnt(&UTC::now().to_string()),&[]).unwrap();
 
         "Thanks for taking that survey!"
     });
 
+    // retrieving results
+    server.get("/results", middleware! {|_, mut resp|
+        resp.set(StatusCode::Ok);
+        resp.set(MediaType::Html);
+        return resp.send_file("resources/getResults.html");
+    });
+
     let surveys_clone_get = surveys_arc.clone();
     let conn_get = conn_arc.clone();
-    server.get("/survey/:foo/:bar/:baz",middleware!{ |req, mut resp|
-        let id = req.param("foo").unwrap();
-        let key = req.param("bar").unwrap();
-        let resp_format = req.param("baz").unwrap();
+    server.post("/results",middleware!{ |req, mut resp|
+        let form_data = try_with!(resp,req.form_body());
+        let id = form_data.get("id").unwrap();
+        let key = form_data.get("key").unwrap();
+        // let resp_format = req.param("baz").unwrap();
 
         let surveys = surveys_clone_get.read().unwrap();
         let conn = conn_get.lock().unwrap();
@@ -175,11 +178,19 @@ fn main() {
         // resp.set(MediaType::)
     });
 
+    // deleting surveys:
+    server.get("/delete", middleware! {|_, mut resp|
+        resp.set(StatusCode::Ok);
+        resp.set(MediaType::Html);
+        return resp.send_file("resources/deleteSurvey.html");
+    });
+    // handling deletions
     let surveys_clone_delete = surveys_arc.clone();
     let conn_delete = conn_arc.clone();
-    server.get("/survey/:foo/:bar/delete", middleware! { |req, mut resp|
-        let id = req.param("foo").unwrap();
-        let key = req.param("bar").unwrap();
+    server.post("/deleted", middleware! { |req, mut resp|
+        let form_data = try_with!(resp,req.form_body());
+        let id = form_data.get("id").unwrap();
+        let key = form_data.get("key").unwrap();
         let mut surveys = surveys_clone_delete.write().unwrap();
         let conn = conn_delete.lock().unwrap();
         let result = match surveys.get(id) {
@@ -204,8 +215,6 @@ fn main() {
         }
         result
     });
-
-
 
     server.listen("127.0.0.1:6767").unwrap();
 }

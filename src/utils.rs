@@ -76,7 +76,8 @@ impl Survey {
         match fr {
             Ok(mut f) => {
                 let qs: String = self.questions.iter()
-                        .map(|q| q.as_string()).collect::<Vec<String>>().join("\n");
+                        .map(|q| q.as_string()).collect::<Vec<String>>()
+                        .join("\n");
                 f.write_all(&qs.as_bytes()).unwrap();
             },
             Err(e) => {println!("{:?}",e);}
@@ -123,9 +124,6 @@ impl Survey {
         format!("SELECT * FROM \"{}\"",self.id)
     }
 
-    // pub fn to_csv(&self, c: &Connection) -> Result<String,_> {
-    //
-    // }
 }
 
 
@@ -160,7 +158,6 @@ impl SResponse {
         stmnt.push_str("time)");
         vals.push_str(&format!("\"{}\")",t));
         stmnt.push_str(&vals);
-        println!("{}",stmnt);
         stmnt
     }
 
