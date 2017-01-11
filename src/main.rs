@@ -3,7 +3,6 @@ extern crate rand;
 extern crate rustc_serialize;
 extern crate rusqlite;
 extern crate chrono;
-extern crate tempfile;
 
 
 use nickel::{Nickel, HttpRouter, MediaType, FormBody};
@@ -13,7 +12,7 @@ use rusqlite::Connection;
 
 use chrono::{UTC,DateTime};
 
-use tempfile::tempfile;
+// use tempfile::tempfile;
 
 use std::collections::HashMap;
 use std::fs::{File,remove_file,read_dir};
@@ -25,19 +24,6 @@ use utils::*;
 
 // #[cfg(test)]
 // mod tests;
-
-
-// fn survey_from_file(survey_file: &str) -> Result<Vec<Question>,u32> {
-//     match File::open(survey_file) {
-//         Ok(mut f) => {
-//             let mut buf = String::new();
-//             f.read_to_string(&mut buf).unwrap();
-//             let qs: Vec<&str> = buf.trim().split("\r\n").collect();
-//             Ok(make_questions(&qs))
-//         },
-//         Err(_) => Err(400)
-//     }
-// }
 
 
 
@@ -165,9 +151,7 @@ fn main() {
                         }
                         row
                     }).unwrap();
-                    // let temp_file = format!("temp/{}",s.id);
-                    // let mut f: File = tempfile().expect("failed to create tempfile");
-                    //File::create(&temp_file).unwrap();
+
                     let mut csv_string = s.questions.iter()
                               .fold("\"id".to_string(),|a,q| a + "\",\"" + &q.text);
                     csv_string.push_str("\",timestamp\n");
@@ -176,10 +160,10 @@ fn main() {
                         println!("{:?}", &line);
                         csv_string += &line;
                         // println!("{:?}", result);
-                    resp.set(MediaType::Txt);
-                    println!("{:?}", &csv_string);
-                    return resp.send(csv_string);
                     }
+                    resp.set(MediaType::Txt);
+                    println!("{}", &csv_string);
+                    return resp.send(csv_string);
                 } else {
                     ()// return resp.send_file("resources/notPermitted.html");
                 }
