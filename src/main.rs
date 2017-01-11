@@ -50,7 +50,6 @@ fn main() {
     for path in paths {
         if let Ok(p) = path {
             let id = p.file_name().into_string().unwrap();
-            // let survey_file = format!("surveys/{}",&id);
             let s = Survey::from_file("surveys",&id).unwrap();
             surveys.insert(s.id.clone(),s);
         }
