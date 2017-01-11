@@ -89,7 +89,7 @@ impl Survey {
                 let id_key: Vec<&str> = id.split('-').collect();
                 let mut buf = String::new();
                 f.read_to_string(&mut buf).unwrap();
-                let qs = make_questions(&buf.trim().split("\r\n").collect());
+                let qs = make_questions(&buf.trim().split("\n").collect());
                 println!("{:?}", id_key);
                 Ok(Survey {id: id_key[0].to_string(), key: id_key[1].to_string(), questions: qs})
             },
