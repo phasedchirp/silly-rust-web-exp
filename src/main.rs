@@ -1,8 +1,3 @@
-// #![feature(proc_macro)]
-// #[macro_use]
-// extern crate serde_derive;
-// extern crate serde_json;
-
 #[macro_use]
 extern crate nickel;
 
@@ -80,7 +75,7 @@ fn main() {
 
         s.to_file(&format!("surveys/{}-{}",&s.id,&s.key));
         surveys.insert(s.id.clone(),s.clone());
-        conn.execute(&s.to_stmnt(),&[]).unwrap();
+        s.to_stmnt(&conn);
         let mut data = HashMap::new();
         data.insert("id",s.id.clone());
         data.insert("key",s.key.clone());
@@ -128,7 +123,8 @@ fn main() {
 
         let user_response = SResponse::new(&form_data,                            surveys.get(&survey_id).unwrap(), &survey_id);
 
-        conn.execute(&user_response.to_stmnt(&UTC::now().to_string()),&[]).unwrap();
+        user_response.to_stmnt(&conn,&UTC::now().to_string());
+        // conn.execute(&user_response.to_stmnt(&UTC::now().to_string()),&[]).unwrap();
 
         "Thanks for taking that survey!"
     });
@@ -155,7 +151,7 @@ fn main() {
             Some(s) => {
                 if s.key == key {
                     let q_len = s.questions.len();
-                    let mut stmnt = conn.prepare(&s.get_results()).unwrap();
+                    let mut stmnt = s.get_results(&conn);
                     let rows = stmnt.query_map(&[],|r| {
                         let mut row: Vec<String> = Vec::new();
                         for i in 0..(q_len+2) {
@@ -205,7 +201,7 @@ fn main() {
             Some(s) => {
                 if s.key == key {
                     resp.set(StatusCode::Ok);
-                    conn.execute(&s.to_drop(),&[]).unwrap();
+                    s.to_drop(&conn);
                     remove_file(&format!("surveys/{}-{}",s.id,s.key)).unwrap();
                     "Survey deleted"
                 } else {

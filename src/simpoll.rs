@@ -2,6 +2,7 @@ use rand::{self, Rng};
 use nickel::Params;
 use std::fs::File;
 use std::io::{Read,Write};
+use rusqlite::{Connection,Statement};
 
 
 
@@ -106,21 +107,21 @@ impl Survey {
         result
     }
 
-    pub fn to_stmnt(&self) -> String {
+    pub fn to_stmnt(&self, c: &Connection) {
         let mut stmnt = format!("CREATE TABLE \"{}\" (id string PRIMARY KEY,",self.id);
         for q in 0..(self.questions.len()) {
             stmnt.push_str(&format!("q{} TEXT,\n",q));
         }
         stmnt.push_str("time string\n)");
-        stmnt
+        c.execute(&stmnt,&[]).unwrap();
     }
 
-    pub fn to_drop(&self) -> String {
-        format!("DROP TABLE \"{}\"",self.id)
+    pub fn to_drop(&self,c: &Connection) {
+        c.execute(&format!("DROP TABLE \"{}\"",self.id),&[]).unwrap();
     }
 
-    pub fn get_results(&self) -> String {
-        format!("SELECT * FROM \"{}\"",self.id)
+    pub fn get_results<'a>(&'a self, c: &'a Connection) -> Statement {
+        c.prepare(&format!("SELECT * FROM \"{}\"",self.id)).unwrap()
     }
 
 }
@@ -147,7 +148,7 @@ impl SResponse {
         SResponse {id: new_id(10), s_id: id.to_string(), vals: result}
     }
 
-    pub fn to_stmnt(&self,t: &str) -> String {
+    pub fn to_stmnt(&self, c: &Connection ,t: &str) {
         let mut stmnt = format!("INSERT INTO \"{}\" (id, ",self.s_id);
         let mut vals = format!(" VALUES (\"{}\" ,",self.id);
         for r in self.vals.iter() {
@@ -156,8 +157,10 @@ impl SResponse {
         }
         stmnt.push_str("time)");
         vals.push_str(&format!("\"{}\")",t));
+        // let vals: Vec<&String> = self.vals.iter().map(|r| &r.2).collect();
         stmnt.push_str(&vals);
-        stmnt
+        // c.execute(&stmnt,vals.as_slice()).unwrap();
+        c.execute(&stmnt,&[]).unwrap();
     }
 
 }
