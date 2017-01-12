@@ -1,6 +1,12 @@
-#[macro_use] extern crate nickel;
+// #![feature(proc_macro)]
+// #[macro_use]
+// extern crate serde_derive;
+// extern crate serde_json;
+
+#[macro_use]
+extern crate nickel;
+
 extern crate rand;
-extern crate rustc_serialize;
 extern crate rusqlite;
 extern crate chrono;
 
@@ -10,24 +16,25 @@ use nickel::status::StatusCode;
 
 use rusqlite::Connection;
 
-use chrono::{UTC,DateTime};
+use chrono::UTC;
 
 use std::collections::HashMap;
-use std::fs::{File,remove_file,read_dir};
-use std::io::{Read,Write};
+use std::fs::{remove_file,read_dir};
 use std::sync::{Arc,RwLock,Mutex};
 
-mod utils;
-use utils::*;
+mod simpoll;
+use simpoll::*;
 
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 
 
 
 fn main() {
     let mut server = Nickel::new();
-    let conn_arc = Arc::new(Mutex::new(Connection::open("surveys.sqlite").unwrap()));
+    let conn = Connection::open("surveys.sqlite").unwrap();
+    conn.execute("DROP TABLE IF EXISTS example; CREATE TABLE example (id string PRIMARY KEY, q0 string, q1 string);",&[]).unwrap();
+    let conn_arc = Arc::new(Mutex::new(conn));
 
     let mut surveys = HashMap::new();
 
@@ -40,6 +47,8 @@ fn main() {
             surveys.insert(s.id.clone(),s);
         }
     }
+
+
 
     let surveys_arc = Arc::new(RwLock::new(surveys));
 
@@ -147,7 +156,7 @@ fn main() {
                 if s.key == key {
                     let q_len = s.questions.len();
                     let mut stmnt = conn.prepare(&s.get_results()).unwrap();
-                    let mut rows = stmnt.query_map(&[],|r| {
+                    let rows = stmnt.query_map(&[],|r| {
                         let mut row: Vec<String> = Vec::new();
                         for i in 0..(q_len+2) {
                             row.push(r.get(i as i32));
@@ -162,20 +171,19 @@ fn main() {
                         let line = format!("{}\n",result.unwrap().join(","));
                         println!("{:?}", &line);
                         csv_string += &line;
-                        // println!("{:?}", result);
                     }
                     resp.set(MediaType::Txt);
-                    println!("{}", &csv_string);
                     return resp.send(csv_string);
                 } else {
-                    ()// return resp.send_file("resources/notPermitted.html");
+                    resp.set(StatusCode::Forbidden);
+                    "You don't have permission to do that"
                 }
             },
-            None => ()//return resp.send_file("resources/notPermitted.html");
+            None => {
+                resp.set(StatusCode::Forbidden);
+                "You don't have permission to do that"
+            }
         }
-
-        // resp.set(StatusCode::Ok);
-        // resp.set(MediaType::)
     });
 
     // deleting surveys:
@@ -198,16 +206,16 @@ fn main() {
                 if s.key == key {
                     resp.set(StatusCode::Ok);
                     conn.execute(&s.to_drop(),&[]).unwrap();
-                    remove_file(&format!("surveys/{}-{}",s.id,s.key));
+                    remove_file(&format!("surveys/{}-{}",s.id,s.key)).unwrap();
                     "Survey deleted"
                 } else {
                     resp.set(StatusCode::Forbidden);
-                    "Not allowed"
+                    "You don't have permission to do that"
                 }
             },
             None => {
                 resp.set(StatusCode::Forbidden);
-                "Not allowed"
+                "You don't have permission to do that"
             }
         };
         if result == "Survey deleted" {

@@ -1,10 +1,16 @@
+// use simpoll::*;
+// use nickel::Params;
+//
+// test_survey = Survey{}
+//
 // #[test]
 // fn result_parsing() {
-//     unimplemented!()
+//     input = Params{"q0":"something","q1":"something else")
 // }
 //
 // #[test]
 // fn survey_parsing() {
+//     // input = ""
 //     unimplemented!()
 // }
 //

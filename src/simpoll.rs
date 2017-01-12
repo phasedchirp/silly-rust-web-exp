@@ -2,11 +2,10 @@ use rand::{self, Rng};
 use nickel::Params;
 use std::fs::File;
 use std::io::{Read,Write};
-// use rusqlite::Connection;
 
 
 
-#[derive(RustcEncodable,Clone,Debug)]
+#[derive(Clone,Debug)]
 pub struct Question {
     pub number: usize,
     pub text: String,
@@ -57,7 +56,7 @@ pub fn make_questions(qs: &Vec<&str>) -> Vec<Question> {
     result
 }
 
-#[derive(RustcEncodable,Clone,Debug)]
+#[derive(Clone,Debug)]
 pub struct Survey {
     pub id: String,
     pub key: String,
