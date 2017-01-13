@@ -6,7 +6,7 @@ use rusqlite::{Connection,Statement};
 
 
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct Question {
     pub number: usize,
     pub text: String,

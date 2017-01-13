@@ -124,7 +124,6 @@ fn main() {
         let user_response = SResponse::new(&form_data,                            surveys.get(&survey_id).unwrap(), &survey_id);
 
         user_response.to_stmnt(&conn,&UTC::now().to_string());
-        // conn.execute(&user_response.to_stmnt(&UTC::now().to_string()),&[]).unwrap();
 
         "Thanks for taking that survey!"
     });
@@ -142,7 +141,6 @@ fn main() {
         let form_data = try_with!(resp,req.form_body());
         let id = form_data.get("id").unwrap();
         let key = form_data.get("key").unwrap();
-        // let resp_format = req.param("baz").unwrap();
 
         let surveys = surveys_clone_get.read().unwrap();
         let conn = conn_get.lock().unwrap();
